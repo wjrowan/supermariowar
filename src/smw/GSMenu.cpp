@@ -110,6 +110,17 @@ extern SoundsList *soundpacklist;
 extern TourList *tourlist;
 extern WorldList *worldlist;
 
+namespace {
+/// Tournaments, tours and worlds have scoreboards and maps laid out for up to 4 teams
+bool MatchTypeSupportsTeams(MatchType matchtype, short teamCount)
+{
+    if (teamCount <= 4)
+        return true;
+
+    return matchtype != MatchType::Tournament && matchtype != MatchType::Tour && matchtype != MatchType::World;
+}
+} // namespace
+
 // std::uniue_ptr requires that the special member function have access
 // to the complete types.
 MenuState::MenuState() = default;
@@ -624,6 +635,14 @@ void MenuState::update()
 			gfx_changefullscreen(game_values.fullscreen);
             blitdest = screen;
         }
+        else if (MENU_CODE_TO_GAME_SETUP_MENU == code && !MatchTypeSupportsTeams(game_values.matchtype, mTeamSelectMenu->GetTeamCount())) {
+            iDisplayError = DISPLAY_ERROR_TOO_MANY_TEAMS;
+            iDisplayErrorTimer = 120;
+
+            // Stay in the team selection
+            mTeamSelectMenu->ResetTeamSelect();
+            mCurrentMenu->ResetMenu();
+        }
         else if (MENU_CODE_TO_GAME_SETUP_MENU == code) {
             printf("MENU_CODE_TO_GAME_SETUP_MENU\n");
             //Moves teams to the first arrays in the list and counts the number of teams
@@ -670,7 +689,10 @@ void MenuState::update()
                 StartGame();
             } else if (MatchType::QuickGame == game_values.matchtype) {
                 printf(" Match type: Quick game\n");
-                short iRandomMode = RANDOM_INT( GAMEMODE_LAST);
+                short iRandomMode;
+                do {
+                    iRandomMode = RANDOM_INT(GAMEMODE_LAST);
+                } while (!GameModeSupportsTeams(iRandomMode, score_cnt));
                 game_values.gamemode = gamemodes[iRandomMode];
 
                 SModeOption * options = game_values.gamemode->GetOptions();
@@ -756,6 +778,7 @@ void MenuState::update()
                         maplist->findexact(szCurrentMapName, false);
                         mGameSettingsMenu->miMapField->LoadCurrentMap();
 
+                        mGameSettingsMenu->HideUnsupportedModes(score_cnt);
                         game_values.gamemode = gamemodes[mGameSettingsMenu->GetCurrentGameModeID()];
 
                         for (short iMode = 0; iMode < GAMEMODE_LAST; iMode++) {
@@ -1252,6 +1275,8 @@ void MenuState::update()
             rm->menu_font_large.drawCentered(320, 405, "Error Reading World File!");
         else if (iDisplayError == DISPLAY_ERROR_MAP_FILTER)
             rm->menu_font_large.drawCentered(320, 405, "No Maps Meet All Filter Conditions!");
+        else if (iDisplayError == DISPLAY_ERROR_TOO_MANY_TEAMS)
+            rm->menu_font_large.drawCentered(320, 405, "This Match Type Allows Up To 4 Teams!");
 
         if (--iDisplayErrorTimer == 0)
             iDisplayError = DISPLAY_ERROR_NONE;

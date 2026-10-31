@@ -352,3 +352,23 @@ short CGameMode::GetClosestGoal(short iGoal)
 
     return iOptionValue;
 }
+
+bool GameModeSupportsTeams(short gamemode, short teamCount)
+{
+    if (teamCount <= 4)
+        return true;
+
+    // These use per-team map data, objects or layouts made for 4 teams
+    switch (gamemode) {
+        case game_mode_jail:
+        case game_mode_eggs:
+        case game_mode_ctf:
+        case game_mode_star:
+        case game_mode_koth:
+        case game_mode_race:
+        case game_mode_owned:
+            return false;
+        default:
+            return true;
+    }
+}

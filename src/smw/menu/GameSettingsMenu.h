@@ -24,6 +24,7 @@ public:
     void HideGMSettingsBtn();
     void GameModeChanged(short gmID);
     void RefreshGameModeButtons();
+    void HideUnsupportedModes(short teamCount);
     short GetCurrentGameModeID();
     const char* GetCurrentMapName();
     bool IsOnStartBtn();

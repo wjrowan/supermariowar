@@ -165,6 +165,15 @@ void UI_GameSettingsMenu::RefreshGameModeButtons()
     }
 }
 
+void UI_GameSettingsMenu::HideUnsupportedModes(short teamCount)
+{
+    for (short iMode = 0; iMode < GAMEMODE_LAST; iMode++)
+        miModeField->hideItem(iMode, !GameModeSupportsTeams(iMode, teamCount));
+
+    // Hiding the current mode moved the selection, so make it the current mode again
+    GameModeChanged(miModeField->currentValue());
+}
+
 void UI_GameSettingsMenu::OpenMapFilters()
 {
     miMapFilterScroll->setVisible(true);

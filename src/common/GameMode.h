@@ -89,6 +89,9 @@ class CGameMode
 		bool fReverseScoring;
 };
 
+/// Whether a game mode can be played by this many teams (some only support 4 teams so far)
+bool GameModeSupportsTeams(short gamemode, short teamCount);
+
 void RemovePlayersButTeam(short teamid);
 bool RemoveTeam(short teamid);
 void SetupScoreBoard(bool fOrderMatters);
