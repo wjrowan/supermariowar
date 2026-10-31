@@ -156,6 +156,7 @@ public:
 
 private:
     void ReadInputConfig();
+    void ReadSavedInputConfig();
     void ReadBinaryConfig();
     void ReadTomlConfig();
 

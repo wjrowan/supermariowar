@@ -3,8 +3,12 @@
 #include "GameValues.h"
 #include "GlobalConstants.h"
 
+#include <algorithm>
+#include <cstdio>
+#include <vector>
+
 extern CGameValues game_values;
-extern SDL_Joystick** joysticks;
+extern std::vector<SDL_Joystick*> joysticks;
 extern int joystickcount;
 
 namespace {
@@ -21,6 +25,45 @@ SDL_JoystickID deviceIndexFromJoystickID(SDL_JoystickID id)
     return KEYBOARD_DEVICE_ID;
 }
 } // namespace
+
+short OpenJoystick(SDL_JoystickID id)
+{
+    if (deviceIndexFromJoystickID(id) != KEYBOARD_DEVICE_ID)
+        return -1;  // SDL also reports the joysticks found at startup as added
+
+    SDL_Joystick* joystick = SDL_OpenJoystick(id);
+    if (!joystick) {
+        printf("[input] Couldn't open joystick %u: %s\n", static_cast<unsigned>(id), SDL_GetError());
+        return -1;
+    }
+
+    // Reuse the first disconnected slot, so a joystick that reconnects gets its old device index back
+    auto slot = std::find(joysticks.begin(), joysticks.end(), nullptr);
+    if (slot == joysticks.end())
+        slot = joysticks.insert(slot, nullptr);
+    *slot = joystick;
+    joystickcount = static_cast<int>(joysticks.size());
+
+    const short device = static_cast<short>(slot - joysticks.begin());
+    printf("[input] Joystick %d connected: %s\n", device, SDL_GetJoystickName(joystick));
+    return device;
+}
+
+void CloseJoystick(SDL_JoystickID id)
+{
+    for (size_t device = 0; device < joysticks.size(); device++) {
+        if (joysticks[device] && SDL_GetJoystickID(joysticks[device]) == id) {
+            printf("[input] Joystick %d disconnected\n", static_cast<int>(device));
+            SDL_CloseJoystick(joysticks[device]);
+            joysticks[device] = nullptr;
+        }
+    }
+}
+
+SDL_Joystick* GetJoystick(short device)
+{
+    return device >= 0 && device < joystickcount ? joysticks[device] : nullptr;
+}
 
 CPlayerInput::CPlayerInput()
 {
@@ -83,6 +126,17 @@ void CPlayerInput::ResetKeys()
 //iGameState == 0 for in game and 1 for menu
 void CPlayerInput::Update(SDL_Event event, short iGameState)
 {
+    if (event.type == SDL_EVENT_JOYSTICK_ADDED) {
+        const short device = OpenJoystick(event.jdevice.which);
+        if (device >= 0)
+            AssignJoystick(device);
+        return;
+    }
+    if (event.type == SDL_EVENT_JOYSTICK_REMOVED) {
+        CloseJoystick(event.jdevice.which);
+        return;
+    }
+
 	bool fFound = false;
     for (short iPlayer = -1; iPlayer < MAX_PLAYERS; iPlayer++) {
 		CInputControl * inputControl;
@@ -337,4 +391,28 @@ void CPlayerInput::Update(SDL_Event event, short iGameState)
 		//if (fFound)
 			//break;
 	}
+}
+
+void CPlayerInput::AssignJoystick(short device)
+{
+    // Only hand out game controllers, as some keyboard and mouse receivers show up as joysticks too.
+    // Other joysticks can still be picked in the controls menu.
+    SDL_Joystick* joystick = GetJoystick(device);
+    if (!joystick || !SDL_IsGamepad(SDL_GetJoystickID(joystick)))
+        return;
+
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
+        if (inputControls[iPlayer] && inputControls[iPlayer]->iDevice == device)
+            return;
+    }
+
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
+        if (inputControls[iPlayer] && inputControls[iPlayer]->iDevice == DEVICE_KEYBOARD) {
+            CInputPlayerControl& joystickControl = game_values.inputConfiguration[iPlayer][1];
+            joystickControl.iDevice = device;
+            inputControls[iPlayer] = &joystickControl;
+            printf("[input] Joystick %d assigned to player %d\n", device, iPlayer + 1);
+            return;
+        }
+    }
 }

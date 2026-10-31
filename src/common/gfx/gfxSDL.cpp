@@ -24,7 +24,7 @@ template<typename... Args>
 namespace {
 void initSdl()
 {
-    if (!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK))
+    if (!SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMEPAD))
         throw_error("SDL error: {}", SDL_GetError());
 
     const auto sdl_version = SDL_GetVersion();

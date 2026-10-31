@@ -106,8 +106,6 @@ CGM_Boxes_MiniGame	*boxesgamemode = NULL;
 
 short currentgamemode = 0;
 
-extern SDL_Joystick     **joysticks;
-extern int              joystickcount;
 
 extern CMap* g_map;
 extern CTilesetManager* g_tilesetmanager;
@@ -213,11 +211,11 @@ void create_globals()
 void init_joysticks()
 {
     // SDL3 opens joysticks by instance ID, not by index
-    SDL_JoystickID* joystickids = SDL_GetJoysticks(&joystickcount);
-    joysticks = new SDL_Joystick*[joystickcount];
+    int count = 0;
+    SDL_JoystickID* joystickids = SDL_GetJoysticks(&count);
 
-    for (int i = 0; i < joystickcount; i++)
-        joysticks[i] = SDL_OpenJoystick(joystickids[i]);
+    for (int i = 0; i < count; i++)
+        OpenJoystick(joystickids[i]);
 
     SDL_free(joystickids);
 

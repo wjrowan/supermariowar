@@ -454,6 +454,15 @@ void CGameConfig::ReadBinaryConfig() {
 }
 
 void CGameConfig::ReadInputConfig() {
+    ReadSavedInputConfig();
+
+    // Controllers that no player uses yet go to the players still on the keyboard, in the order they were found.
+    // This way a fresh install, or more controllers than last time, need no setup.
+    for (short device = 0; device < joystickcount; device++)
+        playerInput.AssignJoystick(device);
+}
+
+void CGameConfig::ReadSavedInputConfig() {
     const std::string controls_path(GetControlsBinPath());
     if (!FileExists(controls_path)) {
         printf("[config] No controls file, using default controls.\n");

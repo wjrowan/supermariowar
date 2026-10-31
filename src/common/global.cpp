@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <algorithm>
 #include <array>
+#include <vector>
 
 // main game directory, read from command line argument
 #ifdef __ANDROID__
@@ -38,7 +39,7 @@ CMap      *g_map;
 CTilesetManager *g_tilesetmanager;
 
 //Joystick-Init
-SDL_Joystick **joysticks = NULL;
+std::vector<SDL_Joystick*> joysticks;  // a disconnected joystick leaves a nullptr, see CloseJoystick
 int joystickcount = 0;
 
 
