@@ -95,3 +95,28 @@ TEST_CASE("Sprite sheets with an unknown layout are left unchanged")
     CHECK_FALSE(team_colors::extendSheet(sheet, team_colors::Axis::X, 4));
     CHECK(sheet.getWidth() == 15);
 }
+
+TEST_CASE("Generated team variants go after the trailing variants")
+{
+    // 4 team variants followed by one other (eg. the gray "all teams" announcement icon)
+    const int stride = 2;
+    SdlSurfacePtr surface(SDL_CreateSurface(stride * 5, 1, SDL_PIXELFORMAT_XRGB8888));
+    const RGB variantColors[] = {{224, 32, 32}, {32, 224, 32}, {224, 224, 32}, {32, 32, 224}, {128, 128, 128}};
+    for (int variant = 0; variant < 5; variant++) {
+        for (int x = 0; x < stride; x++)
+            SDL_WriteSurfacePixel(surface.get(), variant * stride + x, 0, variantColors[variant].r, variantColors[variant].g, variantColors[variant].b, 255);
+    }
+    gfxSprite sheet(std::move(surface), std::nullopt);
+
+    REQUIRE(team_colors::extendSheet(sheet, team_colors::Axis::X, stride, 0, 1));
+    CHECK(sheet.getWidth() == stride * (MAX_TEAMS + 1));
+
+    // the trailing variant stays where it was
+    CHECK(readPixel(sheet, stride * 4, 0) == RGB {128, 128, 128});
+    for (size_t team = 0; team < MAX_TEAMS; team++) {
+        const size_t index = team_colors::variantIndex(team, 1);
+        CHECK(index == (team < 4 ? team : team + 1));
+        const RGB source = variantColors[team_colors::sourceTeam(team)];
+        CHECK(readPixel(sheet, stride * static_cast<int>(index), 0) == team_colors::colorFor(source, team));
+    }
+}

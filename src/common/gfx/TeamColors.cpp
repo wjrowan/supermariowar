@@ -82,17 +82,23 @@ RGB colorFor(RGB sourceColor, size_t team)
     return shiftHue(sourceColor, GENERATED_TEAMS[team - ORIGINAL_COUNT].hueShift);
 }
 
-bool extendSheet(gfxSprite& sprite, Axis axis, int stride, int firstVariant)
+size_t variantIndex(size_t team, int trailingVariants)
+{
+    return team < ORIGINAL_COUNT ? team : team + static_cast<size_t>(trailingVariants);
+}
+
+bool extendSheet(gfxSprite& sprite, Axis axis, int stride, int firstVariant, int trailingVariants)
 {
     SDL_Surface* src = sprite.getSurface();
     if (!src)
         return false;
 
     const int length = axis == Axis::X ? src->w : src->h;
-    if (length != stride * (firstVariant + static_cast<int>(ORIGINAL_COUNT)))
+    const int originalVariants = firstVariant + static_cast<int>(ORIGINAL_COUNT) + trailingVariants;
+    if (length != stride * originalVariants)
         return false;  // the sheet already has more teams, or a layout we don't know
 
-    const int newLength = stride * (firstVariant + MAX_TEAMS);
+    const int newLength = stride * (originalVariants + MAX_TEAMS - static_cast<int>(ORIGINAL_COUNT));
     SdlSurfacePtr dst(SDL_CreateSurface(
         axis == Axis::X ? newLength : src->w,
         axis == Axis::Y ? newLength : src->h,
@@ -130,7 +136,7 @@ bool extendSheet(gfxSprite& sprite, Axis axis, int stride, int firstVariant)
     const int crossLength = axis == Axis::X ? src->h : src->w;
     for (size_t team = ORIGINAL_COUNT; team < MAX_TEAMS; team++) {
         const int srcStart = stride * (firstVariant + static_cast<int>(sourceTeam(team)));
-        const int dstStart = stride * (firstVariant + static_cast<int>(team));
+        const int dstStart = stride * (firstVariant + static_cast<int>(variantIndex(team, trailingVariants)));
         for (int along = 0; along < stride; along++) {
             for (int across = 0; across < crossLength; across++) {
                 if (axis == Axis::X)

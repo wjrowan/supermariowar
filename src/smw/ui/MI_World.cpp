@@ -9,6 +9,7 @@
 #include "uimenu.h"
 #include "world.h"
 #include "WorldTourStop.h"
+#include "gfx/TeamColors.h"
 
 #include <cmath>
 
@@ -120,7 +121,7 @@ void MI_World::DisplayTeamControlAnnouncement()
     else
         sprintf(szMessage, "Team %d Is In Control", iControllingTeam + 1);
 
-    m_parentMenu->AddEyeCandy<EC_Announcement>(&rm->menu_font_large, &rm->spr_announcementicons, szMessage, game_values.colorids[iControllingPlayerId], 120, 100);
+    m_parentMenu->AddEyeCandy<EC_Announcement>(&rm->menu_font_large, &rm->spr_announcementicons, szMessage, team_colors::variantIndex(game_values.colorids[iControllingPlayerId], 1), 120, 100);
 }
 
 void MI_World::SetCurrentStageToCompleted(short iWinningTeam)

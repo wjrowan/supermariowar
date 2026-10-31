@@ -10,6 +10,7 @@
 #include "ResourceManager.h"
 #include "Score.h"
 #include "WorldTourStop.h"
+#include "gfx/TeamColors.h"
 #include "objects/powerup/PU_TreasureChestBonus.h"
 
 #include <algorithm>
@@ -167,8 +168,10 @@ bool RemoveTeam(short teamid)
 
     //Announce that a team was removed
     if (game_values.deadteamnotice && game_values.flags.teamdeadcounter < score_cnt - 1) {
-        eyecandy[2].emplace<EC_Announcement>(&rm->game_font_large, &rm->spr_announcementicons, "Team Removed!", iAnnouncementColor, 90, 200);
-        rm->sfx_announcer[iAnnouncementColor + 16].play();
+        eyecandy[2].emplace<EC_Announcement>(&rm->game_font_large, &rm->spr_announcementicons, "Team Removed!", team_colors::variantIndex(iAnnouncementColor, 1), 90, 200);
+        // The announcer only has sounds for the original team colors
+        if (iAnnouncementColor < static_cast<short>(team_colors::ORIGINAL_COUNT))
+            rm->sfx_announcer[iAnnouncementColor + 16].play();
     }
 
     return game_values.flags.teamdeadcounter == score_cnt - 1;

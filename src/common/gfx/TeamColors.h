@@ -25,9 +25,13 @@ enum class Axis { X, Y };
 
 /// Extends a sprite sheet that has a variant for each original team, laid out along `axis`,
 /// `stride` pixels apart, with a variant for every team up to MAX_TEAMS.
-/// `firstVariant` is the number of variants before the first team one (eg. an uncolored one).
+/// `firstVariant` is the number of variants before the first team one (eg. an uncolored one),
+/// `trailingVariants` the number of other variants after the last one; the new teams go after those.
 /// Sheets that don't have exactly ORIGINAL_COUNT team variants are left unchanged.
 /// Returns whether the sheet was extended.
-bool extendSheet(gfxSprite& sprite, Axis axis, int stride, int firstVariant = 0);
+bool extendSheet(gfxSprite& sprite, Axis axis, int stride, int firstVariant = 0, int trailingVariants = 0);
+
+/// The index of a team's variant in a sheet extended with `trailingVariants`, not counting `firstVariant`.
+size_t variantIndex(size_t team, int trailingVariants);
 
 } // namespace team_colors

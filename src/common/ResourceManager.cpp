@@ -382,6 +382,8 @@ void CResourceManager::loadMenuGraphics()
     spr_thumbnail_mapitems[1] = builder("gfx/packs/menu/menu_mapitems_thumbnail.png").create();
 
     spr_announcementicons = builder("gfx/packs/menu/menu_announcement_icons.png").create();
+    // The 5th icon is the gray "all teams" one, the new colors go after it
+    team_colors::extendSheet(spr_announcementicons, team_colors::Axis::X, 32, 0, 1);
 
     spr_platformstarttile = builder("gfx/leveleditor/leveleditor_platformstarttile.png").withAlpha(64).withWrapping().create();
     spr_platformendtile = builder("gfx/leveleditor/leveleditor_selectedtile.png").withAlpha(64).withWrapping().create();
