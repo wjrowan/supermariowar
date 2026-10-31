@@ -208,7 +208,9 @@ void gfx_take_screenshot() {
     gfx.takeScreenshot();
 }
 
-void gfx_close() {}
+void gfx_close() {
+    gfx.close();
+}
 bool gfx_loadpalette(const std::filesystem::path& palette_path) {
     return gfx_palette.load(palette_path);
 }

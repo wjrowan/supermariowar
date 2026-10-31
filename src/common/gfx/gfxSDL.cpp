@@ -124,10 +124,21 @@ bool GraphicsSDL::init(bool fullscreen)
 
 GraphicsSDL::~GraphicsSDL()
 {
+    close();
+}
+
+// Call this before returning from main: as a global, the destructor runs from the exit handlers,
+// by which point some GL drivers (eg. NVIDIA) are already unloaded, and destroying the renderer crashes.
+void GraphicsSDL::close()
+{
     SDL_DestroyTexture(sdl_screen_texture);
     SDL_DestroySurface(sdl_screen_surface);
     SDL_DestroyRenderer(sdl_renderer);
     SDL_DestroyWindow(sdl_window);
+    sdl_screen_texture = nullptr;
+    sdl_screen_surface = nullptr;
+    sdl_renderer = nullptr;
+    sdl_window = nullptr;
     quitSdl();
 }
 
