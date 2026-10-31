@@ -82,6 +82,21 @@ no newer than the Deck's Fedora glibc):
 VS Code: CMake Tools picks up `CMakePresets.json`; the launch config "Debug smw (gdb)" builds
 `smw` with the debug preset and runs it under gdb with `--datadir data`.
 
+Bounds-checking build: `build/ubsan` is the debug preset plus `-fsanitize=bounds`, reusing
+`build/debug`'s fetched dependency sources. It aborts with file and line on any out-of-range
+index into a fixed-size array, which is how leftover 4-player arrays show up. Rebuild and run:
+
+```bash
+cmake --build build/ubsan --target smw
+```
+
+```bash
+./build/ubsan/smw --datadir data
+```
+
+Settings live in `~/.local/share/supermariowar-8p/` (`options.toml`, `controls.8p.bin`),
+apart from a stock SMW install's `supermariowar/`.
+
 ## Known issues
 
 - The current AppImage needs GLIBC_2.43 (float math such as `sqrtf`/`atan2f` got new
@@ -92,34 +107,35 @@ VS Code: CMake Tools picks up `CMakePresets.json`; the launch config "Debug smw 
   over HTTPS fails there with error 77. `wget`/`python3` work. `build-appimage.sh` falls back
   to wget. The build box's `dnf` is unaffected.
 
-- On the host's NVIDIA driver the game segfaults on exit: the global `GraphicsSDL gfx`
-  destructor (src/common/gfx/gfxSDL.cpp) frees SDL/GL objects from an `exit()` handler,
-  after NVIDIA's libGL has already torn itself down. Clean on Mesa (Intel iGPU, Deck).
-  Upstream bug, not yet patched.
+## 8-player status
 
-## 8-player hotspots
+`MAX_PLAYERS` (8), `MAX_TEAMS` (8) and `MAX_TEAM_SIZE` (7) are in `src/common/GlobalConstants.h`.
+Phase 1 (functionality test) is in. Open Phase 2 decisions: the 4 real new colours and their
+art, final HUD / team select layouts, CTF flag bases for teams 5-8 (maps store 4), the other
+4-team modes and tournament/tour/world screens, and remembering pads by GUID.
 
-`MAX_PLAYERS` is in `src/common/GlobalConstants.h`. Much of the code ignores it and
-hard-codes 4, so after bumping it, look for:
+What's placeholder or limited for now:
 
-- `< 4` loops and `[4]` arrays. Not every 4 is a player count: tiles, directions
-  (left/right/up/down), and some sprite frames also use 4. Read the context before changing one.
-- `src/common/GameValues.h` / `GameValues.cpp`: per-player arrays (`inputConfiguration[4][2]`,
-  `playercontrol`, `skinids`, `colorids`, `teamids[4][3]`, `teamcounts`, `storedpowerups`,
-  `worldpowerups`, `tournament_scores`, bullet bill timers, secret-unlock arrays…), and
-  `controlkeys[2][2][4][NUM_KEYS]` (default keys per player; also `extern`'d in
-  `src/worldeditor/worldeditor.cpp`).
-- `src/common/ConfigNames.h`: config/TOML arrays (`skins`, `player_slots`, …) sized by
-  `MAX_PLAYERS`, plus serialisation that may assume 4 entries.
-- `src/smw/GSGameplay.cpp`, `src/smw/GSMenu.cpp`, `src/smw/menu/ModeOptionsMenu.cpp`,
-  `src/common/map.cpp`.
-- UI: `src/smw/ui/MI_TeamSelect.*`, `MI_World.*`, `MI_InputControlContainer.*`,
-  `MI_TournamentScoreboard.*`.
-- Player colour palettes in the gfx data: `data/gfx/packs/*/palette.png` is 25x37
-  (1 key row + 4 teams x 9 `PlayerPalette` states). `gfxPalette`'s `ColorSheet` is sized
-  `MAX_PLAYERS * PlayerPalette::COUNT`, so 8 players needs 4 more colour sets (73 rows) in
-  every gfx pack. Changes go in the `data` submodule, so they need their own commit and fork there.
-- HUD/menu layout is fixed at 640x480. Scoreboards, team select and the input menu lay out
-  4 slots; 8 won't fit without a new layout.
-- Netplay: compiled out via `NO_NETWORK=ON`. Its protocol (`src/smw/net.cpp`,
-  `src/smw/network/ProtocolGamePackages.h`, `src/server/`) is 4-player and out of scope for now.
+- Colours 5-8 are generated at load time by hue-shifting colours 1-4 (purple, orange,
+  cyan, pink): `src/common/gfx/TeamColors.*`, called from `gfxPalette::load` and
+  `CResourceManager::extendTeamColoredSprites`. Sheets that already have 8 variants are left
+  alone, so real art in the `data` submodule (needs its own fork) replaces them without code
+  changes.
+- With more than 4 teams, CTF, Race, King of the Hill, Jail, Eggs, Owned and Star are hidden
+  (`GameModeSupportsTeams` in `src/smw/gamemodes/GameMode.cpp`), and tournaments, tours and
+  worlds are refused (`MatchTypeSupportsTeams` in `src/smw/GSMenu.cpp`). They still use
+  per-team data sized for 4 (`flagbaselocations[4]`, `WO_RaceGoal`, `WO_KingOfTheHillZone`,
+  `Jail.cpp`, `MI_TournamentScoreboard`, `MI_World`).
+- Maps only have spawn areas for teams 1-4; teams 5-8 spawn in the general areas.
+- Team select, in-game scoreboard and the end-of-game ranking use placeholder layouts
+  (8 narrow columns, two score rows, squeezed rows). HUD is still fixed at 640x480.
+- The announcer has no clips for colours 5-8, so it stays silent for them.
+- Controllers: pads that SDL knows as gamepads go to the players still on keyboard, at
+  startup and when connected (`CPlayerInput::AssignJoystick`). Saved controls store device
+  indexes, which can reorder between boots. The controls menu lists the pads found at startup.
+
+When hunting leftover 4s: not every 4 is a player count (tiles, directions, switches, swirl
+arms, egg/yoshi colours, sprite frames, the autotest script's "4 == all"). Read the context.
+
+Netplay is compiled out (`NO_NETWORK=ON`) and stays 4-player (`src/smw/net.*`,
+`src/smw/network/`, `src/server/`); it only touches players 1-4 of the shared arrays.
