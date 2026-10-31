@@ -23,7 +23,7 @@ enum PlayerPalette {
 
 
 struct ColorSheet {
-    std::array<RGB, MAX_PLAYERS * PlayerPalette::COUNT> replacements;
+    std::array<RGB, MAX_TEAMS * PlayerPalette::COUNT> replacements;
 
     RGB replacementFor(size_t teamIdx, PlayerPalette playerState) const {
         const size_t idx = teamIdx * PlayerPalette::COUNT + playerState;

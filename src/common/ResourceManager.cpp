@@ -2,6 +2,7 @@
 
 #include "FileList.h"
 #include "Game.h"
+#include "gfx/TeamColors.h"
 #include "GameValues.h"
 #include "TilesetManager.h"
 #include "path.h"
@@ -300,6 +301,43 @@ void CResourceManager::loadAllSprites() {
     spr_powerupselector = builder("gfx/packs/awards/award.png").create();
 
     spr_abovearrows = builder("gfx/packs/eyecandy/abovearrows.png").withWrapping().create();
+
+    extendTeamColoredSprites();
+}
+
+void CResourceManager::extendTeamColoredSprites()
+{
+    using team_colors::Axis;
+    using team_colors::extendSheet;
+
+    // Sheets with one variant per team color, as {sprite, axis, stride, uncolored variants before the teams}
+    extendSheet(spr_fireball, Axis::Y, 36);
+    extendSheet(spr_hammer, Axis::Y, 28);
+    extendSheet(spr_boomerang, Axis::Y, 64);
+    extendSheet(spr_bulletbill, Axis::Y, 64);
+    extendSheet(spr_bulletbilldead, Axis::Y, 32);
+    extendSheet(spr_bomb, Axis::Y, 38, 1);
+    extendSheet(spr_iceblast, Axis::Y, 32, 1);
+    extendSheet(spr_superfireball, Axis::Y, 64, 1);
+    extendSheet(spr_sledgehammer, Axis::Y, 32, 1);
+    extendSheet(spr_podobo, Axis::Y, 64, 1);
+    extendSheet(spr_statue, Axis::X, 32);
+    extendSheet(spr_extralife, Axis::X, 38);
+    extendSheet(spr_abovearrows, Axis::X, 32);
+    extendSheet(spr_awardkillsinrow, Axis::Y, 16);
+    extendSheet(spr_bonus, Axis::Y, 16);
+    extendSheet(spr_fireworks, Axis::Y, 64);
+    extendSheet(spr_spawnsmoke, Axis::Y, 32);
+    extendSheet(spr_spawndoor, Axis::Y, 32);
+    extendSheet(spr_egg, Axis::Y, 32);
+    extendSheet(spr_eggnumbers, Axis::Y, 32);
+    extendSheet(spr_coin, Axis::Y, 32);
+    extendSheet(spr_ownedtags, Axis::X, 48);
+    extendSheet(spr_jail, Axis::X, 44, 1);
+    extendSheet(spr_areas, Axis::X, 32, 1);
+    extendSheet(spr_kingofthehillarea, Axis::X, 96, 1);
+    extendSheet(spr_flagbases, Axis::X, 48);
+    extendSheet(spr_flags, Axis::Y, 64);
 }
 
 void CResourceManager::loadMenuGraphics()
@@ -336,6 +374,7 @@ void CResourceManager::loadMenuGraphics()
     spr_map_filter_icons = builder("gfx/packs/menu/menu_map_flags.png").create();
     spr_tour_markers = builder("gfx/packs/menu/tour_markers.png").create();
     spr_menu_boxed_numbers = builder("gfx/packs/menu/menu_boxed_numbers.png").create();
+    team_colors::extendSheet(spr_menu_boxed_numbers, team_colors::Axis::Y, 16);
     spr_countdown_numbers = builder("gfx/packs/menu/game_countdown_numbers.png").create();
     spr_thumbnail_warps[0] = builder("gfx/packs/menu/menu_warp_preview.png").create();
     spr_thumbnail_warps[1] = builder("gfx/packs/menu/menu_warp_thumbnail.png").create();

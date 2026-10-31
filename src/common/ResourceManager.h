@@ -30,6 +30,7 @@ public:
 
 private:
 	void loadAllSprites();
+	void extendTeamColoredSprites();
 
 public:
     struct LoadedSpriteInfo {
