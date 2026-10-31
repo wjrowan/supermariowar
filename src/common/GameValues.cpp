@@ -138,7 +138,8 @@ std::string GetOptionsBinPath() {
 }
 
 std::string GetControlsBinPath() {
-    return GetHomeDirectory() + "controls.sdl2.bin";
+    // Holds MAX_PLAYERS entries, so it gets its own name instead of the 4-player "controls.sdl2.bin"
+    return GetHomeDirectory() + "controls.8p.bin";
 }
 } // namespace
 

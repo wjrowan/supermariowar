@@ -33,7 +33,8 @@ std::string GetHomeDirectory()
 
 #else // catch-all for Linux-based systems
     std::string result;
-    if (char* sdl_path = SDL_GetPrefPath(nullptr, "supermariowar")) {
+    // Separate from upstream's "supermariowar", so the 8-player fork never overwrites a stock install's settings
+    if (char* sdl_path = SDL_GetPrefPath(nullptr, "supermariowar-8p")) {
         result = sdl_path;
         SDL_free(sdl_path);
     }

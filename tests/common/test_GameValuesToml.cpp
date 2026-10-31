@@ -64,6 +64,10 @@ std::pair<CGameConfig, config::Bridge> makePeculiar()
     bridge.player_slots[1] = PlayerSlot::Cpu;
     bridge.player_slots[2] = PlayerSlot::Cpu;
     bridge.player_slots[3] = PlayerSlot::Empty;
+    for (std::size_t player = 4; player < MAX_PLAYERS; player++) {
+        bridge.skins[player] = "luigi" + std::to_string(player);
+        bridge.player_slots[player] = player % 2 ? PlayerSlot::Cpu : PlayerSlot::Human;
+    }
 
     // eyecandy
     config.spawnstyle = SpawnStyle::Swirl;
@@ -286,7 +290,7 @@ TEST_CASE("Applying a broken TOML document keeps the existing values")
         full_screen = "yes"
 
         [players]
-        skins = ["toad", "peach"]
+        skins = ["toad", "peach", "toad", "peach", "toad", "peach", "toad", "peach", "toad"]
         player_slots = ["human", "nope"]
 
         [gamemode_settings.classic]
@@ -309,7 +313,7 @@ TEST_CASE("Applying a broken TOML document keeps the existing values")
     // wrong key name: kept as-is
     CHECK(restored.fullscreen == config.fullscreen);
     CHECK(restored.respawn == config.respawn);
-    // wrong array length: kept as-is
+    // too long array: kept as-is
     CHECK(restored_bridge.skins == config::Bridge {}.skins);
     // wrong value inside the array: kept as-is
     CHECK(restored_bridge.player_slots == config::Bridge {}.player_slots);
@@ -336,4 +340,32 @@ TEST_CASE("Applying a TOML document without chapters keeps the existing values")
 
     CHECK(restored.fireballttl == CGameConfig {}.fireballttl);
     CHECK(restored.gamemodemenusettings.chicken.usetarget == CGameConfig {}.gamemodemenusettings.chicken.usetarget);
+}
+
+TEST_CASE("Applying a TOML document with fewer players fills only those players")
+{
+    // A config written by a 4-player build
+    const toml::value document = toml::parse_str(R"(
+        [players]
+        skins = ["toad", "", "fire", "kid"]
+        player_slots = ["human", "cpu", "cpu", "empty"]
+    )");
+
+    config::Bridge restored_bridge {};
+    restored_bridge.skins.fill("mario");
+    restored_bridge.player_slots.fill(PlayerSlot::Human);
+
+    CGameConfig restored {};
+    config::apply_config_document(restored, restored_bridge, document);
+
+    CHECK(restored_bridge.skins[0] == "toad");
+    CHECK(restored_bridge.skins[1].empty());
+    CHECK(restored_bridge.skins[3] == "kid");
+    CHECK(restored_bridge.player_slots[1] == PlayerSlot::Cpu);
+    CHECK(restored_bridge.player_slots[3] == PlayerSlot::Empty);
+    // the players the document doesn't mention keep their current values
+    for (std::size_t player = 4; player < MAX_PLAYERS; player++) {
+        CHECK(restored_bridge.skins[player] == "mario");
+        CHECK(restored_bridge.player_slots[player] == PlayerSlot::Human);
+    }
 }

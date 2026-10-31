@@ -142,11 +142,15 @@ void from_toml(T& value, const toml::value& t)
         for (std::size_t i = 0; i < length; i++)
             from_toml(value[i], arr[i]);
     } else if constexpr (is_std_array<T>::value) {
+        // Shorter arrays are accepted so configs written with fewer players (eg. 4 instead of 8) still load;
+        // the remaining elements keep their defaults
         const toml::array& arr = t.as_array();
-        if (arr.size() != value.size())
-            throw std::runtime_error("array size mismatch: expected " + std::to_string(value.size()) + " elements");
-        for (std::size_t i = 0; i < value.size(); i++)
-            from_toml(value[i], arr[i]);
+        if (arr.size() > value.size())
+            throw std::runtime_error("array size mismatch: expected at most " + std::to_string(value.size()) + " elements");
+        T result = value;  // a bad element must not leave the array half-updated
+        for (std::size_t i = 0; i < arr.size(); i++)
+            from_toml(result[i], arr[i]);
+        value = result;
     } else if constexpr (has_named_struct<T>::value) {
         from_toml_table(value, t);
     } else {
