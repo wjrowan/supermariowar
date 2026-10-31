@@ -123,6 +123,49 @@ short ScorePowerupOffset(short teamCount, short slot)
 {
     return scorepowerupoffsets[teamCount - 1][slot];
 }
+
+namespace {
+// The score box art fits teams of up to 3 players. Bigger teams need a box
+// that ends right after their last stored powerup slot.
+short ScoreBoxWidth(short teamCount)
+{
+    return teamCount <= 3 ? 56 + 34 * teamCount : 2 + 52 * teamCount;
+}
+
+void DrawScoreBoxShade(short x, short y, short teamCount, short height)
+{
+    if (teamCount <= 3) {
+        rm->spr_shade[teamCount - 1].draw(x, y, {0, 0, 256, height});
+        return;
+    }
+
+    // Piece it together from the 3 player box: left edge with the first skin,
+    // a 34px slice for every other skin, an 18px slice for every powerup slot, then the right edge
+    const gfxSprite& shade = rm->spr_shade[2];
+    shade.draw(x, y, {0, 0, 36, height});
+    short iX = x + 36;
+    for (short k = 1; k < teamCount; k++, iX += 34)
+        shade.draw(iX, y, {36, 0, 34, height});
+    for (short k = 1; k < teamCount; k++, iX += 18)
+        shade.draw(iX, y, {104, 0, 18, height});
+    shade.draw(iX, y, {140, 0, 18, height});
+}
+
+// Centers the score boxes of teams [first, last) on a row
+void PlaceScoreRow(short first, short last, short y)
+{
+    short totalspace = 20 * (last - first - 1);
+    for (short i = first; i < last; i++)
+        totalspace += ScoreBoxWidth(game_values.teamcounts[i]);
+
+    short x = (App::screenWidth - totalspace) >> 1;
+    for (short i = first; i < last; i++) {
+        score[i]->x = x;
+        score[i]->y = y;
+        x += ScoreBoxWidth(game_values.teamcounts[i]) + 20;
+    }
+}
+} // namespace
 short GameplayState::g_iPowerupToIcon[8] = {80, 176, 272, 304, 336, 368, 384, 400};
 
 GameplayState::GameplayState()
@@ -338,34 +381,41 @@ void GameplayState::createPlayers()
 
 void GameplayState::initScoreDisplayPosition()
 {
-    short i;
-    short totalspace = 0;
-    for (i = 0; i < score_cnt; i++) {
-        totalspace += 56 + game_values.teamcounts[i] * 34;
-    }
-    totalspace += 20 * (score_cnt - 1);
+    short iScoreOffsetY = 0;
+    if (game_values.gamemode->gamemode == game_mode_health || game_values.gamemode->gamemode == game_mode_collection)
+        iScoreOffsetY = 18;
 
-    for (i = 0; i < score_cnt; i++) {
-        if (game_values.scoreboardstyle == ScoreboardStyle::Top || game_values.scoreboardstyle == ScoreboardStyle::Bottom) {
-            score[i]->x = ((App::screenWidth - totalspace) >> 1);
+    const short iTopY = 5;
+    const short iBottomY = 5 + 429 - iScoreOffsetY;
+    const short iRowHeight = 46 + iScoreOffsetY;
 
-            for (short k = 0; k < i; k++)
-                score[i]->x += 76 + game_values.teamcounts[k] * 34;
+    short totalspace = 20 * (score_cnt - 1);
+    for (short i = 0; i < score_cnt; i++)
+        totalspace += ScoreBoxWidth(game_values.teamcounts[i]);
 
-            short iScoreOffsetY = 0;
-            if (game_values.gamemode->gamemode == game_mode_health || game_values.gamemode->gamemode == game_mode_collection)
-                iScoreOffsetY = 18;
+    // With many teams, split them into two rows
+    const short iHalf = (score_cnt + 1) / 2;
 
-            score[i]->y = 5 + (game_values.scoreboardstyle == ScoreboardStyle::Bottom ? 429 - iScoreOffsetY : 0);
+    if (game_values.scoreboardstyle == ScoreboardStyle::Top || game_values.scoreboardstyle == ScoreboardStyle::Bottom) {
+        const bool fBottom = game_values.scoreboardstyle == ScoreboardStyle::Bottom;
+        if (totalspace <= App::screenWidth - 10) {
+            PlaceScoreRow(0, score_cnt, fBottom ? iBottomY : iTopY);
         } else {
-            short iScoreOffsetY = 0;
-            if (game_values.gamemode->gamemode == game_mode_health || game_values.gamemode->gamemode == game_mode_collection)
-                iScoreOffsetY = 18;
-
-            score[i]->x = 5 + (574 - (34 * game_values.teamcounts[i])) * (i % 2);
-            score[i]->y = 5 + (429 - iScoreOffsetY) * (i > 1 ? 1 : 0);
+            PlaceScoreRow(0, iHalf, fBottom ? iBottomY - iRowHeight : iTopY);
+            PlaceScoreRow(iHalf, score_cnt, fBottom ? iBottomY : iTopY + iRowHeight);
         }
+    } else if (score_cnt <= 4) {
+        for (short i = 0; i < score_cnt; i++) {
+            score[i]->x = i % 2 ? App::screenWidth - 5 - ScoreBoxWidth(game_values.teamcounts[i]) : 5;
+            score[i]->y = i > 1 ? iBottomY : iTopY;
+        }
+    } else {
+        // More teams than corners: half along the top, half along the bottom
+        PlaceScoreRow(0, iHalf, iTopY);
+        PlaceScoreRow(iHalf, score_cnt, iBottomY);
+    }
 
+    for (short i = 0; i < score_cnt; i++) {
         score[i]->fromx = score[i]->x;
         score[i]->fromy = score[i]->y;
         score[i]->place = i;
@@ -957,9 +1007,9 @@ void GameplayState::drawScoreboard(short iScoreTextOffset[MAX_TEAMS])
         //in game scoreboards
         for (i = 0; i < score_cnt; i++) {
             if (game_values.gamemode->gamemode == game_mode_health || game_values.gamemode->gamemode == game_mode_collection || game_values.gamemode->gamemode == game_mode_boxes_minigame)
-                rm->spr_shade[game_values.teamcounts[i] - 1].draw(score[i]->x, score[i]->y);
+                DrawScoreBoxShade(score[i]->x, score[i]->y, game_values.teamcounts[i], rm->spr_shade[0].getHeight());
             else
-                rm->spr_shade[game_values.teamcounts[i] - 1].draw(score[i]->x, score[i]->y, {0, 0, 256, 41});
+                DrawScoreBoxShade(score[i]->x, score[i]->y, game_values.teamcounts[i], 41);
 
             for (short k = 0; k < game_values.teamcounts[i]; k++) {
                 short globalID = game_values.teamids[i][k];

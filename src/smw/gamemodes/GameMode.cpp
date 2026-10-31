@@ -1,6 +1,7 @@
 #include "GameMode.h"
 
 #include "eyecandy.h"
+#include "Game.h"
 #include "GameValues.h"
 #include "net.h"
 #include "ObjectContainer.h"
@@ -10,6 +11,8 @@
 #include "Score.h"
 #include "WorldTourStop.h"
 #include "objects/powerup/PU_TreasureChestBonus.h"
+
+#include <algorithm>
 
 extern CScore *score[MAX_TEAMS];
 extern short score_cnt;
@@ -121,9 +124,16 @@ void ShowScoreBoard()
     if (game_values.gamemode->gamemode == game_mode_health || game_values.gamemode->gamemode == game_mode_collection || game_values.gamemode->gamemode == game_mode_boxes_minigame)
         iScoreboardElementHeight = 63;
 
+    // Start higher and squeeze the rows together when many teams wouldn't fit below the winner text
+    short iTopY = 140;
+    if (iTopY + score_cnt * iScoreboardElementHeight > App::screenHeight) {
+        iTopY = 115;
+        iScoreboardElementHeight = std::min<short>(iScoreboardElementHeight, (App::screenHeight - 5 - iTopY) / score_cnt);
+    }
+
     for (short i = 0; i < score_cnt; i++) {
         score[i]->destx = 309 - 34 * game_values.teamcounts[i];
-        score[i]->desty = score[i]->displayorder * iScoreboardElementHeight + 140;
+        score[i]->desty = score[i]->displayorder * iScoreboardElementHeight + iTopY;
     }
 
     if (game_values.music) {

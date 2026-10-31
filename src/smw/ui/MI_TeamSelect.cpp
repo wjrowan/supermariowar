@@ -23,14 +23,15 @@ MI_TeamSelect::MI_TeamSelect(gfxSprite * spr_background_ref, short x, short y) :
     spr = spr_background_ref;
     miImage = new MI_Image(spr, m_pos.x, m_pos.y, 0, 0, 416, 256, 1, 1, 0);
 
-    for (short iTeam = 0; iTeam < 4; iTeam++) {
+    for (short iTeam = 0; iTeam < MAX_TEAMS; iTeam++) {
         iTeamCounts[iTeam] = game_values.teamcounts[iTeam];
 
-        for (short iSlot = 0; iSlot < 3; iSlot++)
+        for (short iSlot = 0; iSlot < MAX_TEAM_SIZE; iSlot++)
             iTeamIDs[iTeam][iSlot] = game_values.teamids[iTeam][iSlot];
-
-        fReady[iTeam] = false;
     }
+
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++)
+        fReady[iPlayer] = false;
 
     iAnimationTimer = 0;
     iAnimationFrame = 0;
@@ -64,26 +65,40 @@ void MI_TeamSelect::Draw()
 
     miImage->Draw();
 
-    for (short iTeam = 0; iTeam < 4; iTeam++) {
+    // Placeholder layout until there is art for 8 teams: 8 narrow columns over the 4 team background,
+    // with players packed closer together in big teams
+    const short iColumnWidth = 384 / MAX_TEAMS;
+    for (short iTeam = 0; iTeam < MAX_TEAMS; iTeam++) {
+        const short iColumnX = m_pos.x + 16 + iTeam * iColumnWidth + (iColumnWidth - 32) / 2;
+        const short iItemSpacing = iTeamCounts[iTeam] <= 4 ? 36 : 22;
+
         for (short iTeamItem = 0; iTeamItem < iTeamCounts[iTeam]; iTeamItem++) {
             short iPlayerID = iTeamIDs[iTeam][iTeamItem];
+            const short iItemY = m_pos.y + 28 + iTeamItem * iItemSpacing;
 
             if (game_values.randomskin[iPlayerID])
-                spr->draw(iTeam * 96 + 43 + m_pos.x, iTeamItem * 36 + 52 + m_pos.y, {416, fReady[iPlayerID] ? 0 : iRandomAnimationFrame, 42, 32});
+                spr->draw(iColumnX - 5, iItemY, {416, fReady[iPlayerID] ? 0 : iRandomAnimationFrame, 42, 32});
             else
-                rm->spr_player[iPlayerID][fReady[iPlayerID] ? 0 : iAnimationFrame].draw(iTeam * 96 + 48 + m_pos.x, iTeamItem * 36 + 52 + m_pos.y, {0, 0, 32, 32});
+                rm->spr_player[iPlayerID][fReady[iPlayerID] ? 0 : iAnimationFrame].draw(iColumnX, iItemY, {0, 0, 32, 32});
 
-            rm->spr_menu_boxed_numbers.draw(iTeam * 96 + 44 + m_pos.x, iTeamItem * 36 + 72 + m_pos.y, {iPlayerID * 16, game_values.colorids[iPlayerID] * 16, 16, 16});
+            rm->spr_menu_boxed_numbers.draw(iColumnX - 4, iItemY + 20, {iPlayerID * 16, game_values.colorids[iPlayerID] * 16, 16, 16});
         }
+    }
 
-        if (game_values.playercontrol[iTeam] > 0) {
-            rm->spr_player_select_ready.draw(iTeam * 160 + 16, 368, {0, 0, 128, 96});
+    // A narrower ready panel per player, made from the edges of the original
+    const short iPanelWidth = App::screenWidth / MAX_PLAYERS;
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
+        if (game_values.playercontrol[iPlayer] == 0)
+            continue;
 
-            rm->spr_menu_boxed_numbers.draw(iTeam * 160 + 32, 388, {iTeam * 16, game_values.colorids[iTeam] * 16, 16, 16});
-            rm->menu_font_small.drawChopRight(iTeam * 160 + 52, 404 - rm->menu_font_small.getHeight(), 80, game_values.randomskin[iTeam] ? "Random" : skinlist->at(game_values.skinids[iTeam]).name.c_str());
+        const short iPanelX = iPlayer * iPanelWidth;
+        rm->spr_player_select_ready.draw(iPanelX, 368, {0, 0, iPanelWidth / 2, 96});
+        rm->spr_player_select_ready.draw(iPanelX + iPanelWidth / 2, 368, {128 - iPanelWidth / 2, 0, iPanelWidth / 2, 96});
 
-            rm->spr_player_select_ready.draw(iTeam * 160 + 64, 408, {128, (!fReady[iTeam] ? 0 : (game_values.playercontrol[iTeam] == 1 ? 32 : 64)), 34, 32});
-        }
+        rm->spr_menu_boxed_numbers.draw(iPanelX + 8, 388, {iPlayer * 16, game_values.colorids[iPlayer] * 16, 16, 16});
+        rm->menu_font_small.drawChopRight(iPanelX + 26, 404 - rm->menu_font_small.getHeight(), iPanelWidth - 34, game_values.randomskin[iPlayer] ? "Random" : skinlist->at(game_values.skinids[iPlayer]).name.c_str());
+
+        rm->spr_player_select_ready.draw(iPanelX + (iPanelWidth - 34) / 2, 408, {128, (!fReady[iPlayer] ? 0 : (game_values.playercontrol[iPlayer] == 1 ? 32 : 64)), 34, 32});
     }
 
     if (fAllReady) {
@@ -95,7 +110,7 @@ void MI_TeamSelect::Draw()
 
 MenuCodeEnum MI_TeamSelect::SendInput(CPlayerInput * playerInput)
 {
-    for (short iPlayer = 0; iPlayer < 4; iPlayer++) {
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
         COutputControl * playerKeys = &game_values.playerInput.outputControls[iPlayer];
 
         if (game_values.playercontrol[iPlayer] > 0 && !fReady[iPlayer]) { //if this player is player or cpu
@@ -198,7 +213,7 @@ MenuCodeEnum MI_TeamSelect::SendInput(CPlayerInput * playerInput)
             }
 
             fAllReady = true;
-            for (short i = 0; i < 4; i++) {
+            for (short i = 0; i < MAX_PLAYERS; i++) {
                 if (!fReady[i]) {
                     fAllReady = false;
                     break;
@@ -234,7 +249,7 @@ MenuCodeEnum MI_TeamSelect::Modify(bool modify)
 
 void MI_TeamSelect::FindNewTeam(short iPlayerID, short iDirection)
 {
-    for (short iTeam = 0; iTeam < 4; iTeam++) {
+    for (short iTeam = 0; iTeam < MAX_TEAMS; iTeam++) {
         for (short iTeamItem = 0; iTeamItem < iTeamCounts[iTeam]; iTeamItem++) {
             if (iTeamIDs[iTeam][iTeamItem] == iPlayerID) {
                 iTeamCounts[iTeam]--;
@@ -249,12 +264,12 @@ void MI_TeamSelect::FindNewTeam(short iPlayerID, short iDirection)
                     iNewTeam += iDirection;
 
                     if (iNewTeam < 0)
-                        iNewTeam = 3;
-                    else if (iNewTeam > 3)
+                        iNewTeam = MAX_TEAMS - 1;
+                    else if (iNewTeam >= MAX_TEAMS)
                         iNewTeam = 0;
 
                     fOnlyTeam = true;
-                    for (int iMovePlayer = 0; iMovePlayer < 4; iMovePlayer++) {
+                    for (int iMovePlayer = 0; iMovePlayer < MAX_TEAMS; iMovePlayer++) {
                         if (iMovePlayer == iNewTeam)
                             continue;
 
@@ -286,11 +301,11 @@ void MI_TeamSelect::FindNewTeam(short iPlayerID, short iDirection)
 
 void MI_TeamSelect::Reset()
 {
-    for (short iPlayer = 0; iPlayer < 4; iPlayer++) {
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
         short iTeamID;
         short iSlotID;
         bool fFound = false;
-        for (iTeamID = 0; iTeamID < 4; iTeamID++) {
+        for (iTeamID = 0; iTeamID < MAX_TEAMS; iTeamID++) {
             for (iSlotID = 0; iSlotID < iTeamCounts[iTeamID]; iSlotID++) {
                 if (iTeamIDs[iTeamID][iSlotID] == iPlayer) {
                     fFound = true;
@@ -318,8 +333,8 @@ void MI_TeamSelect::Reset()
             if (game_values.playercontrol[iPlayer] > 0) {
                 short iLookForNewTeam = iPlayer;
 
-                while (iTeamCounts[iLookForNewTeam] >= 3) {
-                    if (++iLookForNewTeam >= 4)
+                while (iTeamCounts[iLookForNewTeam] >= MAX_TEAM_SIZE) {
+                    if (++iLookForNewTeam >= MAX_TEAMS)
                         iLookForNewTeam = 0;
                 }
 
@@ -336,7 +351,7 @@ void MI_TeamSelect::Reset()
 
     short iCountTeams = 0;
     short iLastTeam = 0;
-    for (short iTeamID = 0; iTeamID < 4; iTeamID++) {
+    for (short iTeamID = 0; iTeamID < MAX_TEAMS; iTeamID++) {
         if (iTeamCounts[iTeamID] > 0) {
             iCountTeams++;
             iLastTeam = iTeamID;
@@ -345,7 +360,7 @@ void MI_TeamSelect::Reset()
 
     if (iCountTeams == 1) {
         short iLookForNewTeam = iLastTeam;
-        if (++iLookForNewTeam >= 4)
+        if (++iLookForNewTeam >= MAX_TEAMS)
             iLookForNewTeam = 0;
 
         iTeamCounts[iLastTeam]--;
@@ -362,7 +377,7 @@ void MI_TeamSelect::Reset()
 
     fAllReady = true;
 
-    for (short iPlayer = 0; iPlayer < 4; iPlayer++) {
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
         iFastScroll[iPlayer] = 0;
         iFastScrollTimer[iPlayer] = 0;
 
@@ -399,11 +414,11 @@ void MI_TeamSelect::Reset()
 short MI_TeamSelect::OrganizeTeams()
 {
     iNumTeams = 0;
-    for (short iTeam = 0; iTeam < 4; iTeam++) {
+    for (short iTeam = 0; iTeam < MAX_TEAMS; iTeam++) {
         game_values.teamcounts[iTeam] = 0;
 
         if (iTeamCounts[iTeam] > 0) {
-            for (short iTeamSpot = 0; iTeamSpot < 3; iTeamSpot++)
+            for (short iTeamSpot = 0; iTeamSpot < MAX_TEAM_SIZE; iTeamSpot++)
                 game_values.teamids[iNumTeams][iTeamSpot] = iTeamIDs[iTeam][iTeamSpot];
 
             game_values.teamcounts[iNumTeams] = iTeamCounts[iTeam];
@@ -416,7 +431,7 @@ short MI_TeamSelect::OrganizeTeams()
 
 short MI_TeamSelect::GetTeam(short iPlayerID)
 {
-    for (short iTeam = 0; iTeam < 4; iTeam++) {
+    for (short iTeam = 0; iTeam < MAX_TEAMS; iTeam++) {
         for (short iSlot = 0; iSlot < iTeamCounts[iTeam]; iSlot++) {
             if (iTeamIDs[iTeam][iSlot] == iPlayerID) {
                 return iTeam;
