@@ -7,7 +7,7 @@
 #include "Score.h"
 #include "objects/overmap/WO_Area.h"
 
-extern CScore *score[4];
+extern CScore *score[MAX_TEAMS];
 extern short score_cnt;
 
 extern std::vector<CPlayer*> players;

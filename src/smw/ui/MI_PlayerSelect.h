@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GlobalConstants.h"
 #include "uicontrol.h"
 
 #include <array>
@@ -30,7 +31,7 @@ private:
     short iIndent = 0;
 
     short iSelectedPlayer = 0;
-    std::array<short, 4> iPlayerPosition;
+    std::array<short, MAX_PLAYERS> iPlayerPosition;
 
     std::unique_ptr<MI_Image> miModifyImage;
 };

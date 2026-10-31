@@ -1,11 +1,11 @@
 #include "MysteryMushroomTempPlayer.h"
 
 #include "GameValues.h"
+#include "GSGameplay.h"
 #include "player.h"
 #include "objects/moving/MO_CarriedObject.h"
 
 extern CGameValues game_values;
-extern short scorepowerupoffsets[3][3];
 
 
 void MysteryMushroomTempPlayer::SetPlayer(CPlayer* player, short iPowerup)
@@ -38,7 +38,7 @@ void MysteryMushroomTempPlayer::SetPlayer(CPlayer* player, short iPowerup)
 
     gamepowerup = iPowerup;
 
-    iOldPowerupX = player->Score().x + scorepowerupoffsets[game_values.teamcounts[player->teamID] - 1][player->subTeamID];
+    iOldPowerupX = player->Score().x + ScorePowerupOffset(game_values.teamcounts[player->teamID], player->subTeamID);
     iOldPowerupY = player->Score().y + 25;
 }
 

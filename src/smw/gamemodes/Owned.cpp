@@ -5,7 +5,7 @@
 #include "ResourceManager.h"
 #include "Score.h"
 
-extern CScore *score[4];
+extern CScore *score[MAX_TEAMS];
 extern std::vector<CPlayer*> players;
 
 extern CResourceManager* rm;

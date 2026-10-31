@@ -33,21 +33,34 @@ extern int joystickcount;
 
 
 //[Keyboard/Joystick][Game/Menu][NumPlayers][NumKeys]  left, right, jump, down, turbo, powerup, start, cancel
-SDL_Keycode controlkeys[2][2][4][NUM_KEYS] = { { { {SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_DOWN, SDLK_RCTRL, SDLK_RSHIFT, SDLK_RETURN, SDLK_ESCAPE},
+SDL_Keycode controlkeys[2][2][MAX_PLAYERS][NUM_KEYS] = { { { {SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_DOWN, SDLK_RCTRL, SDLK_RSHIFT, SDLK_RETURN, SDLK_ESCAPE},
             {SDLK_A, SDLK_D, SDLK_W, SDLK_S, SDLK_E, SDLK_Q, SDLK_UNKNOWN, SDLK_UNKNOWN},
             {SDLK_G, SDLK_J, SDLK_Y, SDLK_H, SDLK_U, SDLK_T, SDLK_UNKNOWN, SDLK_UNKNOWN},
-            {SDLK_L, SDLK_APOSTROPHE, SDLK_P, SDLK_SEMICOLON, SDLK_LEFTBRACKET, SDLK_O, SDLK_UNKNOWN, SDLK_UNKNOWN}
+            {SDLK_L, SDLK_APOSTROPHE, SDLK_P, SDLK_SEMICOLON, SDLK_LEFTBRACKET, SDLK_O, SDLK_UNKNOWN, SDLK_UNKNOWN},
+            // players 5-8 have no keyboard keys by default
+            {SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN},
+            {SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN},
+            {SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN},
+            {SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN}
         },
 
         //up, down, left, right, select, cancel, random, fast scroll
         {   {SDLK_UP, SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_RETURN, SDLK_ESCAPE, SDLK_SPACE,  SDLK_LSHIFT},
             {SDLK_W, SDLK_S, SDLK_A, SDLK_D, SDLK_E, SDLK_Q, SDLK_UNKNOWN, SDLK_UNKNOWN},
             {SDLK_Y, SDLK_H, SDLK_G, SDLK_J, SDLK_U, SDLK_T, SDLK_UNKNOWN, SDLK_UNKNOWN},
-            {SDLK_P, SDLK_SEMICOLON, SDLK_L, SDLK_APOSTROPHE, SDLK_LEFTBRACKET, SDLK_O, SDLK_UNKNOWN, SDLK_UNKNOWN}
+            {SDLK_P, SDLK_SEMICOLON, SDLK_L, SDLK_APOSTROPHE, SDLK_LEFTBRACKET, SDLK_O, SDLK_UNKNOWN, SDLK_UNKNOWN},
+            {SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN},
+            {SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN},
+            {SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN},
+            {SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN, SDLK_UNKNOWN}
         }
     },
     //left, right, jump, down, turbo, powerup, start, cancel;
     { { {JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_STICK_1_DOWN, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3, JOY_BUTTON_START + 4},
+            {JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_STICK_1_DOWN, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3, JOY_BUTTON_START + 4},
+            {JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_STICK_1_DOWN, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3, JOY_BUTTON_START + 4},
+            {JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_STICK_1_DOWN, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3, JOY_BUTTON_START + 4},
+            {JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_STICK_1_DOWN, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3, JOY_BUTTON_START + 4},
             {JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_STICK_1_DOWN, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3, JOY_BUTTON_START + 4},
             {JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_STICK_1_DOWN, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3, JOY_BUTTON_START + 4},
             {JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_STICK_1_DOWN, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3, JOY_BUTTON_START + 4}
@@ -55,6 +68,10 @@ SDL_Keycode controlkeys[2][2][4][NUM_KEYS] = { { { {SDLK_LEFT, SDLK_RIGHT, SDLK_
 
         //up, down, left, right, select, cancel, random, fast scroll
         {   {JOY_STICK_1_UP, JOY_STICK_1_DOWN, JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3},
+            {JOY_STICK_1_UP, JOY_STICK_1_DOWN, JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3},
+            {JOY_STICK_1_UP, JOY_STICK_1_DOWN, JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3},
+            {JOY_STICK_1_UP, JOY_STICK_1_DOWN, JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3},
+            {JOY_STICK_1_UP, JOY_STICK_1_DOWN, JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3},
             {JOY_STICK_1_UP, JOY_STICK_1_DOWN, JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3},
             {JOY_STICK_1_UP, JOY_STICK_1_DOWN, JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3},
             {JOY_STICK_1_UP, JOY_STICK_1_DOWN, JOY_STICK_1_LEFT, JOY_STICK_1_RIGHT, JOY_BUTTON_START, JOY_BUTTON_START + 1, JOY_BUTTON_START + 2, JOY_BUTTON_START + 3}
@@ -236,7 +253,7 @@ void CGameValues::init()
     //networkhost   = false;
     //gamehost      = false;
 
-    for (short iPlayer = 0; iPlayer < 4; iPlayer++) {
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
         storedpowerups[iPlayer] = -1;
         gamepowerups[iPlayer] = -1;
         teamids[iPlayer][0] = iPlayer;
@@ -282,24 +299,17 @@ void CGameValues::resetGameplaySettings()
 void CGameValues::resetSecretCounters()
 {
     //Reset Secret Counters
-    for (short iPlayer = 0; iPlayer < 4; iPlayer++)
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++)
         unlocksecret1part1[iPlayer] = false;
 
     unlocksecret1part2 = 0;
     unlocksecret2part1 = false;
     unlocksecret2part2 = 0;
-    unlocksecret3part1[0] = 0;
-    unlocksecret3part1[1] = 0;
-    unlocksecret3part1[2] = 0;
-    unlocksecret3part1[3] = 0;
-    unlocksecret3part2[0] = 0;
-    unlocksecret3part2[1] = 0;
-    unlocksecret3part2[2] = 0;
-    unlocksecret3part2[3] = 0;
-    unlocksecretunlocked[0] = false;
-    unlocksecretunlocked[1] = false;
-    unlocksecretunlocked[2] = false;
-    unlocksecretunlocked[3] = false;
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
+        unlocksecret3part1[iPlayer] = 0;
+        unlocksecret3part2[iPlayer] = 0;
+        unlocksecretunlocked[iPlayer] = false;
+    }
 }
 
 void CGameConfig::ReadConfig()
@@ -457,7 +467,7 @@ void CGameConfig::ReadInputConfig() {
         //TODO: Need to test what happens when you unplug some controllers from the xbox
         //and then start up (device index will probably point to a gamepad that isn't in the list)
         //and this will cause a crash
-        controls.read_raw(inputConfiguration, sizeof(CInputPlayerControl) * 8);
+        controls.read_raw(inputConfiguration, sizeof(inputConfiguration));
 
         //setup player input controls for game
         for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
@@ -484,7 +494,7 @@ void CGameConfig::WriteInputConfig() const {
         if (!controls.is_open())
             throw std::runtime_error("Could not open " + controls_path);
 
-        controls.write_raw(inputConfiguration, sizeof(CInputPlayerControl) * 8);
+        controls.write_raw(inputConfiguration, sizeof(inputConfiguration));
 
         for (int iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++)
             controls.write_i16(playerInput.inputControls[iPlayer]->iDevice);

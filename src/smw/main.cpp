@@ -89,7 +89,7 @@ short			y_shake = 0;
 //------ game relevant stuff ------
 std::vector<CPlayer*> players;
 
-CScore			*score[4];
+CScore			*score[MAX_TEAMS];
 
 short			score_cnt;
 
@@ -375,7 +375,7 @@ void main_game()
 
     printf("\n---------------- loading ----------------\n");
 
-    for (short iScore = 0; iScore < 4; iScore++)
+    for (short iScore = 0; iScore < MAX_TEAMS; iScore++)
         score[iScore] = new CScore(iScore);
 
     game_values.init();
@@ -437,7 +437,7 @@ void main_game()
     net_close();
 
     //Delete player skins
-    for (short k = 0; k < MAX_PLAYERS; k++) {
+    for (short k = 0; k < MAX_TEAMS; k++) {
         delete score[k];
     }
 

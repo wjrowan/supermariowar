@@ -157,7 +157,9 @@
 #define NUMSURVIVALENEMIES  3
 #define NUMFRENZYCARDS      19
 
-#define MAX_PLAYERS 4
+#define MAX_PLAYERS 8
+#define MAX_TEAMS MAX_PLAYERS            // in free-for-all every player is their own team
+#define MAX_TEAM_SIZE (MAX_PLAYERS - 1)  // a team can't hold everyone, there must be an opponent
 
 
 #endif // GLOBALCONSTANTS_H

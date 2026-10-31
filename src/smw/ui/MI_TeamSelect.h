@@ -29,19 +29,19 @@ class MI_TeamSelect : public UI_Control
 		MI_Image * miImage;
 		gfxSprite * spr;
 
-		short iTeamIDs[4][3];
-		short iTeamCounts[4];
+		short iTeamIDs[MAX_TEAMS][MAX_TEAM_SIZE];
+		short iTeamCounts[MAX_TEAMS];
 		short iNumTeams;
 
 		short iAnimationTimer;
 		short iAnimationFrame;
 		short iRandomAnimationFrame;
 
-		bool fReady[4];
+		bool fReady[MAX_PLAYERS];
 		bool fAllReady;
 
-		short iFastScroll[4];
-		short iFastScrollTimer[4];
+		short iFastScroll[MAX_PLAYERS];
+		short iFastScrollTimer[MAX_PLAYERS];
 
 	friend class MenuState;
 };

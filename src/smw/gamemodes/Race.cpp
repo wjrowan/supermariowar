@@ -7,7 +7,7 @@
 #include "Score.h"
 #include "objects/overmap/WO_RaceGoal.h"
 
-extern CScore *score[4];
+extern CScore *score[MAX_TEAMS];
 extern CObjectContainer objectcontainer[3];
 extern CGameValues game_values;
 extern CResourceManager* rm;

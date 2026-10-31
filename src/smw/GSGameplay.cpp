@@ -61,6 +61,7 @@
 #include "objects/walkingenemy/WalkingEnemy.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cassert>
 #include <cstring>
@@ -79,7 +80,7 @@ extern short currentgamemode;
 extern CMap* g_map;
 
 extern std::vector<CPlayer*> players;
-extern CScore* score[4];
+extern CScore* score[MAX_TEAMS];
 extern short score_cnt;
 
 extern MapList *maplist;
@@ -98,16 +99,35 @@ CEyecandyContainer eyecandy[3];
 SpotlightManager spotlightManager;
 
 short g_iWinningPlayer;
-short scorepowerupoffsets[3][3] = { {  37,  0,    0 },
-                                    {  71,  89,   0 },
-                                    { 105, 123, 141 } };
+namespace {
+// In a team's score box, each player's skin takes 34px
+constexpr auto scoreoffsets = [] {
+    std::array<short, MAX_TEAM_SIZE> offsets {};
+    for (short slot = 0; slot < MAX_TEAM_SIZE; slot++)
+        offsets[slot] = 2 + 34 * slot;
+    return offsets;
+}();
 
-short GameplayState::scoreoffsets[3] = {2, 36, 70};
+// The stored powerups come after the skins, 18px apart: [team size - 1][slot]
+constexpr auto scorepowerupoffsets = [] {
+    std::array<std::array<short, MAX_TEAM_SIZE>, MAX_TEAM_SIZE> offsets {};
+    for (short count = 1; count <= MAX_TEAM_SIZE; count++) {
+        for (short slot = 0; slot < count; slot++)
+            offsets[count - 1][slot] = 3 + 34 * count + 18 * slot;
+    }
+    return offsets;
+}();
+} // namespace
+
+short ScorePowerupOffset(short teamCount, short slot)
+{
+    return scorepowerupoffsets[teamCount - 1][slot];
+}
 short GameplayState::g_iPowerupToIcon[8] = {80, 176, 272, 304, 336, 368, 384, 400};
 
 GameplayState::GameplayState()
 {
-    for (short p = 0; p < 4; p++) {
+    for (short p = 0; p < MAX_PLAYERS; p++) {
         respawnCount[p] = 0;
         respawnanimationtimer[p] = 0;
         respawnanimationframe[p] = 0;
@@ -285,7 +305,7 @@ short GetModeIconIndexFromMode(short iMode)
 void GameplayState::createPlayers()
 {
     //Create players for this game
-    for (short iPlayer = 0; iPlayer < 4; iPlayer++) {
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
         respawnCount[iPlayer] = 0;
 
         if (game_values.singleplayermode == -1 || game_values.singleplayermode == iPlayer) {
@@ -493,14 +513,14 @@ short CountAliveTeams(short * lastteam)
 {
     short findlastteam = 0;
 
-    bool teamalive[4] = {false, false, false, false};
+    bool teamalive[MAX_TEAMS] = {};
     for (CPlayer* player : players) {
         if (!player->isdead())
             teamalive[player->teamID] = true;
     }
 
     short numteams = 0;
-    for (short k = 0; k < 4; k++) {
+    for (short k = 0; k < MAX_TEAMS; k++) {
         if (teamalive[k]) {
             findlastteam = k;
             numteams++;
@@ -641,7 +661,7 @@ void shakeScreen()
 
     //Kill players touching the ground (or in air for MOd blocks)
     short iNumKillPlayers = 0;
-    CPlayer * pKillPlayers[4];
+    CPlayer * pKillPlayers[MAX_PLAYERS];
 
     CPlayer * killer1 = GetPlayerFromGlobalID(game_values.flags.screenshakeplayerid);
 
@@ -892,7 +912,7 @@ void handleObj2ObjCollisions()
     }
 }
 
-void GameplayState::drawScoreboard(short iScoreTextOffset[4])
+void GameplayState::drawScoreboard(short iScoreTextOffset[MAX_TEAMS])
 {
     g_iWinningPlayer = -1;
 
@@ -1252,7 +1272,7 @@ void GameplayState::drawOutOfScreenIndicators()
         player->drawOutOfScreenIndicators();
 }
 
-void GameplayState::drawEverything(short iCountDownState, short iScoreTextOffset[4])
+void GameplayState::drawEverything(short iCountDownState, short iScoreTextOffset[MAX_TEAMS])
 {
     drawBackLayer();
     drawMiddleLayer();
@@ -1683,7 +1703,7 @@ bool updateExitPauseDialog(short iCountDownState) // true on exit
             }
         }
 
-        for (int iPlayer = 0; iPlayer < 4; iPlayer++) {
+        for (int iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
             COutputControl * playerKeys = &game_values.playerInput.outputControls[iPlayer];
 
             //If the start key is pressed (pause key)
@@ -1776,7 +1796,7 @@ void updateScreenShake()
 // updates the bullet bills spawned by a powerup
 void updateBulletBillPowerup()
 {
-    for (short iPlayer = 0; iPlayer < 4; iPlayer++) {
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
         if (game_values.bulletbilltimer[iPlayer] > 0) {
             game_values.bulletbilltimer[iPlayer]--;
 
@@ -2641,7 +2661,7 @@ bool SwapPlayers(short iUsingPlayerID)
 
     short iIncrement = RANDOM_INT (iNumAvailablePlayers - 1);
 
-    MysteryMushroomTempPlayer spots[4];
+    MysteryMushroomTempPlayer spots[MAX_PLAYERS];
     for (size_t iPlayer = 0; iPlayer < players.size(); iPlayer++) {
         CPlayer* player  = players[iPlayer];
 

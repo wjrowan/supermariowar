@@ -48,6 +48,7 @@ struct RoomListEntry {
     uint8_t        playerCount;
 };
 
+// NOTE: netplay (and its protocol) still supports only players 1-4, even though MAX_PLAYERS is higher
 struct Room {
     uint32_t       roomID;
     std::string    name; // NET_MAX_ROOM_NAME_LENGTH

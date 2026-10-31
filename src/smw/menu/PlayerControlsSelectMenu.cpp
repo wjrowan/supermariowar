@@ -10,17 +10,15 @@ extern CResourceManager* rm;
 UI_PlayerControlsSelectMenu::UI_PlayerControlsSelectMenu()
     : UI_Menu()
 {
-    miPlayer1ControlsButton = new MI_Button(&rm->spr_selectfield, 120, 140, "Player 1", 400, TextAlign::CENTER);
-    miPlayer1ControlsButton->SetCode(MENU_CODE_TO_PLAYER_1_CONTROLS);
+    static_assert(MENU_CODE_TO_PLAYER_1_CONTROLS + MAX_PLAYERS - 1 <= MENU_CODE_TO_PLAYER_8_CONTROLS);
 
-    miPlayer2ControlsButton = new MI_Button(&rm->spr_selectfield, 120, 180, "Player 2", 400, TextAlign::CENTER);
-    miPlayer2ControlsButton->SetCode(MENU_CODE_TO_PLAYER_2_CONTROLS);
-
-    miPlayer3ControlsButton = new MI_Button(&rm->spr_selectfield, 120, 220, "Player 3", 400, TextAlign::CENTER);
-    miPlayer3ControlsButton->SetCode(MENU_CODE_TO_PLAYER_3_CONTROLS);
-
-    miPlayer4ControlsButton = new MI_Button(&rm->spr_selectfield, 120, 260, "Player 4", 400, TextAlign::CENTER);
-    miPlayer4ControlsButton->SetCode(MENU_CODE_TO_PLAYER_4_CONTROLS);
+    // 4 players keep the original spacing, more players start higher to fit above "Back"
+    const short iFirstY = MAX_PLAYERS > 4 ? 80 : 140;
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
+        const std::string label = "Player " + std::to_string(iPlayer + 1);
+        miPlayerControlsButtons[iPlayer] = new MI_Button(&rm->spr_selectfield, 120, iFirstY + iPlayer * 40, label, 400, TextAlign::CENTER);
+        miPlayerControlsButtons[iPlayer]->SetCode(static_cast<MenuCodeEnum>(MENU_CODE_TO_PLAYER_1_CONTROLS + iPlayer));
+    }
 
     miPlayerControlsBackButton = new MI_Button(&rm->spr_selectfield, 544, 432, "Back", 80, TextAlign::CENTER);
     miPlayerControlsBackButton->SetCode(MENU_CODE_TO_MAIN_MENU);
@@ -29,16 +27,19 @@ UI_PlayerControlsSelectMenu::UI_PlayerControlsSelectMenu()
     miPlayerControlsMenuRightHeaderBar = new MI_Image(&rm->menu_plain_field, 320, 0, 192, 0, 320, 32, 1, 1, 0);
     miPlayerControlsMenuHeaderText = new MI_HeaderText("Player Controls Menu", 320, 5);
 
-    AddControl(miPlayer1ControlsButton, miPlayerControlsBackButton, miPlayer2ControlsButton, NULL, miPlayerControlsBackButton);
-    AddControl(miPlayer2ControlsButton, miPlayer1ControlsButton, miPlayer3ControlsButton, NULL, miPlayerControlsBackButton);
-    AddControl(miPlayer3ControlsButton, miPlayer2ControlsButton, miPlayer4ControlsButton, NULL, miPlayerControlsBackButton);
-    AddControl(miPlayer4ControlsButton, miPlayer3ControlsButton, miPlayerControlsBackButton, NULL, miPlayerControlsBackButton);
-    AddControl(miPlayerControlsBackButton, miPlayer4ControlsButton, miPlayer1ControlsButton, miPlayer1ControlsButton, NULL);
+    MI_Button* miFirstButton = miPlayerControlsButtons.front();
+    MI_Button* miLastButton = miPlayerControlsButtons.back();
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
+        MI_Button* miUp = iPlayer > 0 ? miPlayerControlsButtons[iPlayer - 1] : miPlayerControlsBackButton;
+        MI_Button* miDown = iPlayer < MAX_PLAYERS - 1 ? miPlayerControlsButtons[iPlayer + 1] : miPlayerControlsBackButton;
+        AddControl(miPlayerControlsButtons[iPlayer], miUp, miDown, NULL, miPlayerControlsBackButton);
+    }
+    AddControl(miPlayerControlsBackButton, miLastButton, miFirstButton, miFirstButton, NULL);
 
     AddNonControl(miPlayerControlsLeftHeaderBar);
     AddNonControl(miPlayerControlsMenuRightHeaderBar);
     AddNonControl(miPlayerControlsMenuHeaderText);
 
-    setInitialFocus(miPlayer1ControlsButton);
+    setInitialFocus(miFirstButton);
     SetCancelCode(MENU_CODE_TO_MAIN_MENU);
 }

@@ -1159,7 +1159,7 @@ void CPlayer::move()
     if (state == PlayerState::Ready) {
         if (pPlayerAI) {
             //Calculate movement every 4th frame (speed up optimization)
-            if (game_values.cputurn == globalID) {
+            if (game_values.cputurn == globalID % 4) {
                 cpu_think();
 
                 if (playerKeys->game_jump.fDown || playerKeys->game_left.fDown || playerKeys->game_right.fDown)
