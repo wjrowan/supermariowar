@@ -2,6 +2,15 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Build smw (debug)",
+      "detail": "Native Tumbleweed debug build of the game target, used before launching gdb",
+      "type": "cmake",
+      "command": "build",
+      "preset": "debug",
+      "targets": ["smw"],
+      "problemMatcher": ["$gcc"]
+    },
+    {
       "label": "Build AppImage for Steam Deck (Bazzite box)",
       "detail": "Runs the release build inside the smw-appimage distrobox so glibc matches Bazzite",
       "type": "shell",
