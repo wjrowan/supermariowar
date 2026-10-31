@@ -84,7 +84,7 @@ void CResourceManager::loadAllSprites() {
         bobombPath = convertPath("gfx/packs/modeskins/bobomb.bmp", graphicspack);
 
     //Just load menu skins for now (just standing right sprite)
-    for (short k = 0; k < MAX_PLAYERS; k++) {
+    for (short k = 0; k < MAX_TEAMS; k++) {
         spr_shyguy[k] = LoadFullSkin(shyguyPath, k);
         spr_chocobo[k] = LoadFullSkin(chickenPath, k);
         spr_bobomb[k] = LoadFullSkin(bobombPath, k);
