@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Super Mario War 8P
+Comment=8-player fork of Super Mario War
+Exec=AppRun
+Icon=smw
+Categories=Game;ArcadeGame;
+Terminal=false

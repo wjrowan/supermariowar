@@ -1,0 +1,17 @@
+{
+  "cmake.useCMakePresets": "always",
+  "cmake.configureOnOpen": true,
+  "cmake.debugConfig": {
+    "args": ["--datadir", "${workspaceFolder}/data"],
+    "cwd": "${workspaceFolder}"
+  },
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "C_Cpp.formatting": "clangFormat",
+  "files.associations": {
+    "*.inl": "cpp"
+  },
+  "search.exclude": {
+    "build/**": true,
+    "data/**": true
+  }
+}

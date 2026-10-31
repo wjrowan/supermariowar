@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build AppImage for Steam Deck (Bazzite box)",
+      "detail": "Runs the release build inside the smw-appimage distrobox so glibc matches Bazzite",
+      "type": "shell",
+      "command": "distrobox enter smw-appimage -- ./packaging/appimage/build-appimage.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}
