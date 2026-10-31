@@ -16,6 +16,7 @@
 extern CGameValues game_values;
 extern CResourceManager* rm;
 
+extern SDL_Joystick** joysticks;
 extern int joystickcount;
 
 
@@ -344,7 +345,8 @@ MI_InputControlContainer::MI_InputControlContainer(gfxSprite * spr_button, short
     miDeviceSelectField->add("Keyboard", -1);
 
     for (int iJoystick = 0; iJoystick < joystickcount; iJoystick++) {
-        miDeviceSelectField->add(SDL_GetJoystickNameForID(iJoystick), iJoystick, false);
+        const char* name = joysticks[iJoystick] ? SDL_GetJoystickName(joysticks[iJoystick]) : nullptr;
+        miDeviceSelectField->add(name ? name : "Unknown Joystick", iJoystick, false);
     }
 
     //If the device is not found, default to the keyboard

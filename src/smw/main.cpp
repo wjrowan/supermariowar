@@ -212,11 +212,14 @@ void create_globals()
 
 void init_joysticks()
 {
-    SDL_GetJoysticks(&joystickcount);
+    // SDL3 opens joysticks by instance ID, not by index
+    SDL_JoystickID* joystickids = SDL_GetJoysticks(&joystickcount);
     joysticks = new SDL_Joystick*[joystickcount];
 
     for (int i = 0; i < joystickcount; i++)
-        joysticks[i] = SDL_OpenJoystick(i);
+        joysticks[i] = SDL_OpenJoystick(joystickids[i]);
+
+    SDL_free(joystickids);
 
     SDL_SetJoystickEventsEnabled(true);
 }

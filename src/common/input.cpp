@@ -4,10 +4,22 @@
 #include "GlobalConstants.h"
 
 extern CGameValues game_values;
+extern SDL_Joystick** joysticks;
+extern int joystickcount;
 
 namespace {
 // Intentional cast from -1 as a keyboard sentinel
 constexpr SDL_JoystickID KEYBOARD_DEVICE_ID = static_cast<SDL_JoystickID>(DEVICE_KEYBOARD);
+
+// Joystick events carry an SDL instance ID, but player devices are indexes into `joysticks`
+SDL_JoystickID deviceIndexFromJoystickID(SDL_JoystickID id)
+{
+    for (int i = 0; i < joystickcount; i++) {
+        if (joysticks[i] && SDL_GetJoystickID(joysticks[i]) == id)
+            return static_cast<SDL_JoystickID>(i);
+    }
+    return KEYBOARD_DEVICE_ID;
+}
 } // namespace
 
 CPlayerInput::CPlayerInput()
@@ -190,7 +202,7 @@ void CPlayerInput::Update(SDL_Event event, short iGameState)
 			}
         } else {
             if (SDL_EVENT_JOYSTICK_HAT_MOTION == event.type) {
-				if (iDeviceID != event.jhat.which)
+				if (iDeviceID != deviceIndexFromJoystickID(event.jhat.which))
 					continue;
 
                 for (int iKey = 0; iKey < NUM_KEYS; iKey++) {
@@ -219,7 +231,7 @@ void CPlayerInput::Update(SDL_Event event, short iGameState)
 					}
 				}
             } else if (SDL_EVENT_JOYSTICK_BUTTON_DOWN == event.type) {
-				if (iDeviceID != event.jbutton.which)
+				if (iDeviceID != deviceIndexFromJoystickID(event.jbutton.which))
 					continue;
 
                 for (int iKey = 0; iKey < NUM_KEYS && !fFound; iKey++) {
@@ -237,7 +249,7 @@ void CPlayerInput::Update(SDL_Event event, short iGameState)
 					}
 				}
             } else if (SDL_EVENT_JOYSTICK_BUTTON_UP == event.type) {
-				if (iDeviceID != event.jbutton.which)
+				if (iDeviceID != deviceIndexFromJoystickID(event.jbutton.which))
 					continue;
 
                 for (int iKey = 0; iKey < NUM_KEYS && !fFound; iKey++) {
@@ -252,7 +264,7 @@ void CPlayerInput::Update(SDL_Event event, short iGameState)
 					}
 				}
             } else if (SDL_EVENT_JOYSTICK_AXIS_MOTION == event.type) {
-				if (iDeviceID != event.jaxis.which)
+				if (iDeviceID != deviceIndexFromJoystickID(event.jaxis.which))
 					continue;
 
                 for (int iKey = 0; iKey < NUM_KEYS; iKey++) {
