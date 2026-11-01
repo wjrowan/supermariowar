@@ -131,8 +131,11 @@ What's placeholder or limited for now:
   per-team data sized for 4 (`flagbaselocations[4]`, `WO_RaceGoal`, `WO_KingOfTheHillZone`,
   `Jail.cpp`, `MI_TournamentScoreboard`, `MI_World`).
 - Maps only have spawn areas for teams 1-4; teams 5-8 spawn in the general areas.
-- Team select, in-game scoreboard and the end-of-game ranking use placeholder layouts
-  (8 narrow columns, two score rows, squeezed rows). HUD is still fixed at 640x480.
+- Team select has a column per team: `MakeTeamSelectBackground` (ResourceManager.cpp)
+  rebuilds the 4-team background at load time (plain top border, 8 tinted columns).
+- With more than 4 players the in-game score boxes are drawn full size off screen and shrunk
+  (up to 75%) onto one row (`GameplayState::drawScoreboard` / `drawTeamScore`). The
+  end-of-game ranking stays full size, squeezing its rows. HUD is still fixed at 640x480.
 - The announcer has no clips for colours 5-8, so it stays silent for them.
 - Controllers: only devices SDL knows as gamepads are used (the Keychron keyboard receiver
   shows up as a joystick). Pads aren't remembered: every launch they go to players 1, 2, 3...

@@ -4,8 +4,9 @@
 #include "GameState.h"
 #include "input.h"
 
-/// X offset of a player's stored powerup in their team's score box
+/// Offset of a player's stored powerup in their team's score box, as drawn on screen
 short ScorePowerupOffset(short teamCount, short slot);
+short ScorePowerupOffsetY();
 
 class GameplayState : public GameState
 {
@@ -36,6 +37,7 @@ class GameplayState : public GameState
         void drawPlayerSwap();
         void drawScreenShakeBackground();
         void drawScoreboard(short iScoreTextOffset[MAX_TEAMS]);
+        void drawTeamScore(short iTeam, short x, short y, short iScoreTextOffset);
         void drawWindMeter();
         void drawCountdown();
         void drawSpotlights();

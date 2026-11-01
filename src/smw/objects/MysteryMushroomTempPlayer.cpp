@@ -39,7 +39,7 @@ void MysteryMushroomTempPlayer::SetPlayer(CPlayer* player, short iPowerup)
     gamepowerup = iPowerup;
 
     iOldPowerupX = player->Score().x + ScorePowerupOffset(game_values.teamcounts[player->teamID], player->subTeamID);
-    iOldPowerupY = player->Score().y + 25;
+    iOldPowerupY = player->Score().y + ScorePowerupOffsetY();
 }
 
 void MysteryMushroomTempPlayer::GetPlayer(CPlayer* player, short* iPowerup)

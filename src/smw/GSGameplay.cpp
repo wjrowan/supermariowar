@@ -119,9 +119,20 @@ constexpr auto scorepowerupoffsets = [] {
 }();
 } // namespace
 
+namespace {
+// With more than 4 players, the score boxes are drawn smaller, on one row
+bool fCompactScoreboard = false;
+float scoreboardScale = 1.f;
+} // namespace
+
 short ScorePowerupOffset(short teamCount, short slot)
 {
-    return scorepowerupoffsets[teamCount - 1][slot];
+    return static_cast<short>(scorepowerupoffsets[teamCount - 1][slot] * scoreboardScale);
+}
+
+short ScorePowerupOffsetY()
+{
+    return static_cast<short>(25 * scoreboardScale);
 }
 
 namespace {
@@ -149,6 +160,13 @@ void DrawScoreBoxShade(short x, short y, short teamCount, short height)
     for (short k = 1; k < teamCount; k++, iX += 18)
         shade.draw(iX, y, {104, 0, 18, height});
     shade.draw(iX, y, {140, 0, 18, height});
+}
+
+// Health, card collection and the boxes minigame show an extra row under the score
+bool DrawsTallScoreBoxes()
+{
+    const short mode = game_values.gamemode->gamemode;
+    return mode == game_mode_health || mode == game_mode_collection || mode == game_mode_boxes_minigame;
 }
 
 // Centers the score boxes of teams [first, last) on a row
@@ -385,34 +403,37 @@ void GameplayState::initScoreDisplayPosition()
     if (game_values.gamemode->gamemode == game_mode_health || game_values.gamemode->gamemode == game_mode_collection)
         iScoreOffsetY = 18;
 
-    const short iTopY = 5;
-    const short iBottomY = 5 + 429 - iScoreOffsetY;
-    const short iRowHeight = 46 + iScoreOffsetY;
-
-    short totalspace = 20 * (score_cnt - 1);
+    short iPlayerCount = 0;
     for (short i = 0; i < score_cnt; i++)
-        totalspace += ScoreBoxWidth(game_values.teamcounts[i]);
+        iPlayerCount += game_values.teamcounts[i];
 
-    // With many teams, split them into two rows
-    const short iHalf = (score_cnt + 1) / 2;
+    fCompactScoreboard = iPlayerCount > 4;
+    scoreboardScale = 1.f;
 
-    if (game_values.scoreboardstyle == ScoreboardStyle::Top || game_values.scoreboardstyle == ScoreboardStyle::Bottom) {
-        const bool fBottom = game_values.scoreboardstyle == ScoreboardStyle::Bottom;
-        if (totalspace <= App::screenWidth - 10) {
-            PlaceScoreRow(0, score_cnt, fBottom ? iBottomY : iTopY);
-        } else {
-            PlaceScoreRow(0, iHalf, fBottom ? iBottomY - iRowHeight : iTopY);
-            PlaceScoreRow(iHalf, score_cnt, fBottom ? iBottomY : iTopY + iRowHeight);
+    if (fCompactScoreboard) {
+        // One row of smaller boxes, at the top (or the bottom with that style)
+        constexpr short iGap = 8;
+        short totalspace = iGap * (score_cnt - 1);
+        for (short i = 0; i < score_cnt; i++)
+            totalspace += ScoreBoxWidth(game_values.teamcounts[i]);
+
+        scoreboardScale = std::min(0.75f, (App::screenWidth - 10) / static_cast<float>(totalspace));
+
+        const short iBoxHeight = static_cast<short>((41 + iScoreOffsetY) * scoreboardScale);
+        const short y = game_values.scoreboardstyle == ScoreboardStyle::Bottom ? App::screenHeight - 5 - iBoxHeight : 5;
+        float x = (App::screenWidth - totalspace * scoreboardScale) / 2.f;
+        for (short i = 0; i < score_cnt; i++) {
+            score[i]->x = static_cast<short>(x);
+            score[i]->y = y;
+            x += (ScoreBoxWidth(game_values.teamcounts[i]) + iGap) * scoreboardScale;
         }
-    } else if (score_cnt <= 4) {
+    } else if (game_values.scoreboardstyle == ScoreboardStyle::Top || game_values.scoreboardstyle == ScoreboardStyle::Bottom) {
+        PlaceScoreRow(0, score_cnt, game_values.scoreboardstyle == ScoreboardStyle::Bottom ? 5 + 429 - iScoreOffsetY : 5);
+    } else {
         for (short i = 0; i < score_cnt; i++) {
             score[i]->x = i % 2 ? App::screenWidth - 5 - ScoreBoxWidth(game_values.teamcounts[i]) : 5;
-            score[i]->y = i > 1 ? iBottomY : iTopY;
+            score[i]->y = 5 + (429 - iScoreOffsetY) * (i > 1 ? 1 : 0);
         }
-    } else {
-        // More teams than corners: half along the top, half along the bottom
-        PlaceScoreRow(0, iHalf, iTopY);
-        PlaceScoreRow(iHalf, score_cnt, iBottomY);
     }
 
     for (short i = 0; i < score_cnt; i++) {
@@ -1006,135 +1027,167 @@ void GameplayState::drawScoreboard(short iScoreTextOffset[MAX_TEAMS])
 
         //in game scoreboards
         for (i = 0; i < score_cnt; i++) {
-            if (game_values.gamemode->gamemode == game_mode_health || game_values.gamemode->gamemode == game_mode_collection || game_values.gamemode->gamemode == game_mode_boxes_minigame)
-                DrawScoreBoxShade(score[i]->x, score[i]->y, game_values.teamcounts[i], rm->spr_shade[0].getHeight());
-            else
-                DrawScoreBoxShade(score[i]->x, score[i]->y, game_values.teamcounts[i], 41);
-
-            for (short k = 0; k < game_values.teamcounts[i]; k++) {
-                short globalID = game_values.teamids[i][k];
-
-                //If player is respawning, draw an animated egg counter
-                if (respawnCount[globalID] > 0 && !game_values.gamemode->gameover) {
-                    if (++respawnanimationtimer[globalID] > 8) {
-                        respawnanimationtimer[globalID] = 0;
-                        respawnanimationframe[globalID] += 32;
-
-                        if (respawnanimationframe[globalID] > 32)
-                            respawnanimationframe[globalID] = 0;
-                    }
-
-                    short scorex = score[i]->x + scoreoffsets[k];
-                    short scorey = score[i]->y + 2;
-                    rm->spr_egg.draw(scorex, scorey, {respawnanimationframe[globalID], game_values.colorids[globalID] << 5, 32, 32});
-                    rm->spr_eggnumbers.draw(scorex, scorey, {((respawnCount[globalID] - 1) >> 1) << 5, game_values.colorids[globalID] << 5, 32, 32});
-                } else { //otherwise draw the player's skin in the scoreboard
-                    short iScoreboardSprite;
-                    if (game_values.gamemode->gameover) {
-                        if (g_iWinningPlayer != i)
-                            iScoreboardSprite = PGFX_DEADFLYING;
-                        else
-                            iScoreboardSprite = PGFX_JUMPING_R;
-                    } else {
-                        iScoreboardSprite = PGFX_STANDING_R;
-                    }
-
-                    //Search for player state to display
-                    CPlayer * player = GetPlayerFromGlobalID(globalID);
-
-                    if (player && !game_values.gamemode->gameover) {
-                        short iScoreOffsetX = score[i]->x + scoreoffsets[k];
-                        short iScoreOffsetY = score[i]->y + 2;
-
-                        if (player->ownerPlayerID > -1)
-                            rm->spr_ownedtags.draw(iScoreOffsetX - 8, iScoreOffsetY - 8, {player->ownerColorOffsetX, 0, 48, 48});
-
-                        player->GetScoreboardSprite()->at(iScoreboardSprite).draw(iScoreOffsetX, iScoreOffsetY, {player->iSrcOffsetX, 0, 32, 32});
-
-                        //Display jail if player is jailed
-                        if (player->jail.isActive())
-                            rm->spr_jail.draw(iScoreOffsetX - 6, iScoreOffsetY - 6, {(player->jail.getColor() + 1) * 44, 0, 44, 44});
-
-                        //Display current powerup if player is using one
-                        if (player->powerup > 0)
-                            rm->spr_storedpowerupsmall.draw(iScoreOffsetX, iScoreOffsetY + 16, {g_iPowerupToIcon[player->powerup - 1], 0, 16, 16});
-
-                        //Display tanooki powerup if player has it
-                        if (player->tanookisuit.isOn())
-                            rm->spr_storedpowerupsmall.draw(iScoreOffsetX + 16, iScoreOffsetY + 16, {App::screenWidth/2, 0, 16, 16});
-                    } else {
-                        rm->spr_player[globalID][iScoreboardSprite].draw(score[i]->x + scoreoffsets[k], score[i]->y + 2, {0, 0, 32, 32});
-                    }
-
-                    //give crown to player(s) with most kills
-                    if (g_iWinningPlayer == i)
-                        rm->spr_crown.draw(score[i]->x + scoreoffsets[k] + 12, score[i]->y - 4);
-                }
-
-                short storedpowerupid = game_values.gamepowerups[globalID];
-
-                //Draw stored powerup
-                if (storedpowerupid != -1) {
-                    if (!game_values.flags.swapplayers) {
-                        rm->spr_storedpowerupsmall.draw(score[i]->x + scorepowerupoffsets[game_values.teamcounts[i] - 1][k], score[i]->y + 25, {storedpowerupid * 16, 0, 16, 16});
-                    }
-                }
+            if (!fCompactScoreboard || game_values.flags.showscoreboard) {
+                drawTeamScore(i, score[i]->x, score[i]->y, iScoreTextOffset[i]);
+                continue;
             }
 
-            //Draw hearts for health mode
-            if (game_values.gamemode->gamemode == game_mode_health) {
-                short iLife = score[i]->subscore[0];
-                short iMax = score[i]->subscore[1];
-                short iHeartX = score[i]->x + scorepowerupoffsets[game_values.teamcounts[i] - 1][0] - 32;
+            // Draw it full size off screen, then shrunk onto the screen
+            constexpr short iMargin = 8;  // for the crown, owned tag and jail around the box
+            static SdlSurfacePtr scoreBox(SDL_CreateSurface(2 + 52 * MAX_TEAM_SIZE + 2 * iMargin, 59 + 2 * iMargin, SDL_PIXELFORMAT_ARGB8888));
+            if (!scoreBox)
+                continue;
 
-                for (short iHeart = 0; iHeart < iLife; iHeart++) {
-                    if (iHeart == iMax - 1 && iHeart % 2 == 0)
-                        rm->spr_scorehearts.draw(iHeartX + iHeart * 8, score[i]->y + 43, {32, 0, 8, 16});
-                    else
-                        rm->spr_scorehearts.draw(iHeartX + iHeart * 8, score[i]->y + 43, {(iHeart % 2) ? 8 : 0, 0, 8, 16});
-                }
+            SDL_FillSurfaceRect(scoreBox.get(), nullptr, 0);
+            SDL_Surface* target = blitdest;
+            blitdest = scoreBox.get();
+            drawTeamScore(i, iMargin, iMargin, iScoreTextOffset[i]);
+            blitdest = target;
 
-                for (short iHeart = iLife; iHeart < iMax; iHeart++) {
-                    if (iHeart == iMax - 1 && iHeart % 2 == 0)
-                        rm->spr_scorehearts.draw(iHeartX + iHeart * 8, score[i]->y + 43, {40, 0, 8, 16});
-                    else
-                        rm->spr_scorehearts.draw(iHeartX + iHeart * 8, score[i]->y + 43, {(iHeart % 2) ? 24 : 16, 0, 8, 16});
-                }
-            } else if (game_values.gamemode->gamemode == game_mode_collection) { //Draw cards for collection mode
-                //Flash collected cards if 3 have been collected
-                if (score[i]->subscore[0] < 3 || score[i]->subscore[2] % 20 < 10) {
-                    short iNumCards = score[i]->subscore[0];
-                    short iCardValues = score[i]->subscore[1];
-                    short iCardX = score[i]->x + scorepowerupoffsets[game_values.teamcounts[i] - 1][0] - 20;
-
-                    for (short iCard = 0; iCard < iNumCards; iCard++) {
-                        rm->spr_scorecards.draw(iCardX + iCard * 20, score[i]->y + 43, {(iCardValues & 3) << 4, 0, 16, 16});
-                        iCardValues >>= 2;
-                    }
-                }
-            } else if (game_values.gamemode->gamemode == game_mode_boxes_minigame) { //Draw coins for boxes minigame
-                //Flash collected cards if 3 have been collected
-                short iNumCoins = score[i]->subscore[0];
-                short iCoinX = score[i]->x + scorepowerupoffsets[game_values.teamcounts[i] - 1][0] - 32;
-
-                short iCoin = 0;
-                for (; iCoin < iNumCoins; iCoin++) {
-                    rm->spr_scorecoins.draw(iCoinX + iCoin * 16, score[i]->y + 43, {0, 0, 16, 16});
-                }
-
-                for (short iEmptyCoin = iCoin; iEmptyCoin < 5; iEmptyCoin++) {
-                    rm->spr_scorecoins.draw(iCoinX + iEmptyCoin * 16, score[i]->y + 43, {16, 0, 16, 16});
-                }
-            }
-
-            short iScoreX = score[i]->x + iScoreTextOffset[i];
-            short iScoreY = score[i]->y + 4;
-
-            rm->spr_scoretext.draw(iScoreX, iScoreY, {score[i]->iDigitLeft, (score[i]->iDigitLeft == 0 ? 16 : 0), 16, 16});
-            rm->spr_scoretext.draw(iScoreX + 18, iScoreY, {score[i]->iDigitMiddle, (score[i]->iDigitLeft == 0 && score[i]->iDigitMiddle == 0 ? 16 : 0), 16, 16});
-            rm->spr_scoretext.draw(iScoreX + 36, iScoreY, {score[i]->iDigitRight, 0, 16, 16});
+            // Sprites were blended onto a transparent surface, so its colors are premultiplied by alpha
+            SDL_SetSurfaceBlendMode(scoreBox.get(), SDL_BLENDMODE_BLEND_PREMULTIPLIED);
+            const short iHeight = DrawsTallScoreBoxes() ? 59 : 41;
+            const SDL_Rect src {0, 0, ScoreBoxWidth(game_values.teamcounts[i]) + 2 * iMargin, iHeight + 2 * iMargin};
+            const SDL_Rect dst {
+                score[i]->x - static_cast<int>(iMargin * scoreboardScale),
+                score[i]->y - static_cast<int>(iMargin * scoreboardScale),
+                static_cast<int>(src.w * scoreboardScale),
+                static_cast<int>(src.h * scoreboardScale),
+            };
+            SDL_BlitSurfaceScaled(scoreBox.get(), &src, blitdest, &dst, SDL_SCALEMODE_PIXELART);
         }
     }
+}
+
+void GameplayState::drawTeamScore(short i, short x, short y, short iScoreTextOffset)
+{
+    if (DrawsTallScoreBoxes())
+        DrawScoreBoxShade(x, y, game_values.teamcounts[i], rm->spr_shade[0].getHeight());
+    else
+        DrawScoreBoxShade(x, y, game_values.teamcounts[i], 41);
+
+    for (short k = 0; k < game_values.teamcounts[i]; k++) {
+        short globalID = game_values.teamids[i][k];
+
+        //If player is respawning, draw an animated egg counter
+        if (respawnCount[globalID] > 0 && !game_values.gamemode->gameover) {
+            if (++respawnanimationtimer[globalID] > 8) {
+                respawnanimationtimer[globalID] = 0;
+                respawnanimationframe[globalID] += 32;
+
+                if (respawnanimationframe[globalID] > 32)
+                    respawnanimationframe[globalID] = 0;
+            }
+
+            short scorex = x + scoreoffsets[k];
+            short scorey = y + 2;
+            rm->spr_egg.draw(scorex, scorey, {respawnanimationframe[globalID], game_values.colorids[globalID] << 5, 32, 32});
+            rm->spr_eggnumbers.draw(scorex, scorey, {((respawnCount[globalID] - 1) >> 1) << 5, game_values.colorids[globalID] << 5, 32, 32});
+        } else { //otherwise draw the player's skin in the scoreboard
+            short iScoreboardSprite;
+            if (game_values.gamemode->gameover) {
+                if (g_iWinningPlayer != i)
+                    iScoreboardSprite = PGFX_DEADFLYING;
+                else
+                    iScoreboardSprite = PGFX_JUMPING_R;
+            } else {
+                iScoreboardSprite = PGFX_STANDING_R;
+            }
+
+            //Search for player state to display
+            CPlayer * player = GetPlayerFromGlobalID(globalID);
+
+            if (player && !game_values.gamemode->gameover) {
+                short iScoreOffsetX = x + scoreoffsets[k];
+                short iScoreOffsetY = y + 2;
+
+                if (player->ownerPlayerID > -1)
+                    rm->spr_ownedtags.draw(iScoreOffsetX - 8, iScoreOffsetY - 8, {player->ownerColorOffsetX, 0, 48, 48});
+
+                player->GetScoreboardSprite()->at(iScoreboardSprite).draw(iScoreOffsetX, iScoreOffsetY, {player->iSrcOffsetX, 0, 32, 32});
+
+                //Display jail if player is jailed
+                if (player->jail.isActive())
+                    rm->spr_jail.draw(iScoreOffsetX - 6, iScoreOffsetY - 6, {(player->jail.getColor() + 1) * 44, 0, 44, 44});
+
+                //Display current powerup if player is using one
+                if (player->powerup > 0)
+                    rm->spr_storedpowerupsmall.draw(iScoreOffsetX, iScoreOffsetY + 16, {g_iPowerupToIcon[player->powerup - 1], 0, 16, 16});
+
+                //Display tanooki powerup if player has it
+                if (player->tanookisuit.isOn())
+                    rm->spr_storedpowerupsmall.draw(iScoreOffsetX + 16, iScoreOffsetY + 16, {App::screenWidth/2, 0, 16, 16});
+            } else {
+                rm->spr_player[globalID][iScoreboardSprite].draw(x + scoreoffsets[k], y + 2, {0, 0, 32, 32});
+            }
+
+            //give crown to player(s) with most kills
+            if (g_iWinningPlayer == i)
+                rm->spr_crown.draw(x + scoreoffsets[k] + 12, y - 4);
+        }
+
+        short storedpowerupid = game_values.gamepowerups[globalID];
+
+        //Draw stored powerup
+        if (storedpowerupid != -1) {
+            if (!game_values.flags.swapplayers) {
+                rm->spr_storedpowerupsmall.draw(x + scorepowerupoffsets[game_values.teamcounts[i] - 1][k], y + 25, {storedpowerupid * 16, 0, 16, 16});
+            }
+        }
+    }
+
+    //Draw hearts for health mode
+    if (game_values.gamemode->gamemode == game_mode_health) {
+        short iLife = score[i]->subscore[0];
+        short iMax = score[i]->subscore[1];
+        short iHeartX = x + scorepowerupoffsets[game_values.teamcounts[i] - 1][0] - 32;
+
+        for (short iHeart = 0; iHeart < iLife; iHeart++) {
+            if (iHeart == iMax - 1 && iHeart % 2 == 0)
+                rm->spr_scorehearts.draw(iHeartX + iHeart * 8, y + 43, {32, 0, 8, 16});
+            else
+                rm->spr_scorehearts.draw(iHeartX + iHeart * 8, y + 43, {(iHeart % 2) ? 8 : 0, 0, 8, 16});
+        }
+
+        for (short iHeart = iLife; iHeart < iMax; iHeart++) {
+            if (iHeart == iMax - 1 && iHeart % 2 == 0)
+                rm->spr_scorehearts.draw(iHeartX + iHeart * 8, y + 43, {40, 0, 8, 16});
+            else
+                rm->spr_scorehearts.draw(iHeartX + iHeart * 8, y + 43, {(iHeart % 2) ? 24 : 16, 0, 8, 16});
+        }
+    } else if (game_values.gamemode->gamemode == game_mode_collection) { //Draw cards for collection mode
+        //Flash collected cards if 3 have been collected
+        if (score[i]->subscore[0] < 3 || score[i]->subscore[2] % 20 < 10) {
+            short iNumCards = score[i]->subscore[0];
+            short iCardValues = score[i]->subscore[1];
+            short iCardX = x + scorepowerupoffsets[game_values.teamcounts[i] - 1][0] - 20;
+
+            for (short iCard = 0; iCard < iNumCards; iCard++) {
+                rm->spr_scorecards.draw(iCardX + iCard * 20, y + 43, {(iCardValues & 3) << 4, 0, 16, 16});
+                iCardValues >>= 2;
+            }
+        }
+    } else if (game_values.gamemode->gamemode == game_mode_boxes_minigame) { //Draw coins for boxes minigame
+        //Flash collected cards if 3 have been collected
+        short iNumCoins = score[i]->subscore[0];
+        short iCoinX = x + scorepowerupoffsets[game_values.teamcounts[i] - 1][0] - 32;
+
+        short iCoin = 0;
+        for (; iCoin < iNumCoins; iCoin++) {
+            rm->spr_scorecoins.draw(iCoinX + iCoin * 16, y + 43, {0, 0, 16, 16});
+        }
+
+        for (short iEmptyCoin = iCoin; iEmptyCoin < 5; iEmptyCoin++) {
+            rm->spr_scorecoins.draw(iCoinX + iEmptyCoin * 16, y + 43, {16, 0, 16, 16});
+        }
+    }
+
+    short iScoreX = x + iScoreTextOffset;
+    short iScoreY = y + 4;
+
+    rm->spr_scoretext.draw(iScoreX, iScoreY, {score[i]->iDigitLeft, (score[i]->iDigitLeft == 0 ? 16 : 0), 16, 16});
+    rm->spr_scoretext.draw(iScoreX + 18, iScoreY, {score[i]->iDigitMiddle, (score[i]->iDigitLeft == 0 && score[i]->iDigitMiddle == 0 ? 16 : 0), 16, 16});
+    rm->spr_scoretext.draw(iScoreX + 36, iScoreY, {score[i]->iDigitRight, 0, 16, 16});
 }
 
 void GameplayState::drawScreenFade()
@@ -2689,8 +2742,8 @@ bool SwapPlayers(short iUsingPlayerID)
             player->fOldSwapX = player->leftX();
             player->fOldSwapY = player->topY();
 
-            player->iNewPowerupX = player->score->x + scorepowerupoffsets[game_values.teamcounts[player->teamID] - 1][player->subTeamID];
-            player->iNewPowerupY = player->score->y + 25;
+            player->iNewPowerupX = player->score->x + ScorePowerupOffset(game_values.teamcounts[player->teamID], player->subTeamID);
+            player->iNewPowerupY = player->score->y + ScorePowerupOffsetY();
         }
     }
 
