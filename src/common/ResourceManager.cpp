@@ -22,6 +22,76 @@ extern CTilesetManager  *g_tilesetmanager;
 
 extern CGameValues game_values;
 
+namespace {
+/// The team selection background has a column for each of the 4 original teams, with the team names
+/// written on its top border. Rebuilds it with a narrower column for every team, and a plain border.
+/// Backgrounds with a layout other than the original one are left unchanged.
+void MakeTeamSelectBackground(gfxSprite& background)
+{
+    // The original layout: 4 panels of 92px, 4px apart, starting at x 18, from y 26 to 181,
+    // under a top border with the team names on it. The rest of the image (eg. the random skin icons) stays.
+    constexpr int PANEL_X = 18, PANEL_WIDTH = 92, PANEL_PITCH = 96, PANEL_TOP = 26, PANEL_BOTTOM = 182;
+    constexpr int BORDER_LEFT = 16, BORDER_RIGHT = 400, BORDER_TILE_X = 70, BORDER_TILE_WIDTH = 16;
+    constexpr int COLUMN_PITCH = PANEL_PITCH * 4 / MAX_TEAMS;
+    constexpr int COLUMN_WIDTH = COLUMN_PITCH - (PANEL_PITCH - PANEL_WIDTH);
+
+    SDL_Surface* surface = background.getSurface();
+    if (MAX_TEAMS <= 4 || !surface || surface->w < 416 || surface->h < PANEL_BOTTOM + 1)
+        return;
+
+    const auto pixel = [surface](int x, int y) {
+        RGB color;
+        SDL_ReadSurfacePixel(surface, x, y, &color.r, &color.g, &color.b, nullptr);
+        return color;
+    };
+    for (int panel = 1; panel < 4; panel++) {
+        if (pixel(PANEL_X + panel * PANEL_PITCH - 1, 100) != colors::BLACK)
+            return;
+    }
+
+    // Copy what's needed first, as it gets overwritten
+    SdlSurfacePtr original(SDL_DuplicateSurface(surface));
+    if (!original)
+        return;
+
+    const auto originalPixel = [&original](int x, int y) {
+        RGB color;
+        SDL_ReadSurfacePixel(original.get(), x, y, &color.r, &color.g, &color.b, nullptr);
+        return color;
+    };
+    const auto setPixel = [surface](int x, int y, RGB color) {
+        SDL_WriteSurfacePixel(surface, x, y, color.r, color.g, color.b, 255);
+    };
+
+    const bool fRLE = SDL_SurfaceHasRLE(surface);
+    SDL_SetSurfaceRLE(surface, false);
+
+    // A plain top border, repeating a piece without names on it
+    for (int y = 0; y < PANEL_TOP; y++) {
+        for (int x = BORDER_LEFT; x < BORDER_RIGHT; x++)
+            setPixel(x, y, originalPixel(BORDER_TILE_X + (x - BORDER_TILE_X + BORDER_TILE_WIDTH * 8) % BORDER_TILE_WIDTH, y));
+    }
+
+    // The new teams are tinted from an original panel of similar lightness (purple from blue, white from yellow...),
+    // and use its other side, so they don't look like a copy
+    constexpr int TINT_SOURCE[] = {3, 2, 1, 0};
+    for (int team = 0; team < MAX_TEAMS; team++) {
+        const int source = team < 4 ? team : TINT_SOURCE[(team - 4) % 4];
+        const int sourceX = PANEL_X + source * PANEL_PITCH + (team < 4 ? 0 : PANEL_WIDTH - COLUMN_WIDTH);
+        const int columnX = PANEL_X + team * COLUMN_PITCH;
+
+        for (int y = PANEL_TOP; y < PANEL_BOTTOM; y++) {
+            for (int x = 0; x < COLUMN_WIDTH; x++)
+                setPixel(columnX + x, y, team_colors::tint(originalPixel(sourceX + x, y), team));
+            for (int x = COLUMN_WIDTH; x < COLUMN_PITCH && columnX + x < PANEL_X + 4 * PANEL_PITCH - (PANEL_PITCH - PANEL_WIDTH); x++)
+                setPixel(columnX + x, y, colors::BLACK);
+        }
+    }
+
+    SDL_SetSurfaceRLE(surface, fRLE);
+}
+} // namespace
+
 
 bool CResourceManager::LoadMenuSkin(short playerID, short skinID, short colorID, bool fLoadBothDirections)
 {
@@ -367,6 +437,7 @@ void CResourceManager::loadMenuGraphics()
     spr_tournament_background = builder("gfx/packs/menu/tournament_background.png").create();
     spr_tournament_powerup_splash = builder("gfx/packs/menu/tournament_powerup_splash.png").create();
     spr_player_select_background = builder("gfx/packs/menu/player_select_background.png").create();
+    MakeTeamSelectBackground(spr_player_select_background);
     spr_player_select_ready = builder("gfx/packs/menu/player_select_ready.png").create();
     //spr_ipfield = builder("gfx/packs/menu/menu_ipfield.png").create();
     spr_selectfield = builder("gfx/packs/menu/menu_selectfield.png").create();

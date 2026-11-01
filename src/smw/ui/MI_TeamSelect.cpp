@@ -65,7 +65,7 @@ void MI_TeamSelect::Draw()
 
     miImage->Draw();
 
-    // Placeholder layout until there is art for 8 teams: 8 narrow columns over the 4 team background,
+    // A narrow column per team (the background is rebuilt to match, see MakeTeamSelectBackground),
     // with players packed closer together in big teams
     const short iColumnWidth = 384 / MAX_TEAMS;
     for (short iTeam = 0; iTeam < MAX_TEAMS; iTeam++) {

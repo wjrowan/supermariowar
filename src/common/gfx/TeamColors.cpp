@@ -71,6 +71,18 @@ RGB toRgb(HSL hsl)
     };
     return RGB {toByte(r), toByte(g), toByte(b)};
 }
+
+// Paints a shade with the base color: its hue, a less saturated base gives less saturated shades,
+// and a lighter or darker base shifts the shades a bit
+RGB paint(float saturation, float lightness, size_t team)
+{
+    const HSL base = toHsl(baseColor(team));
+    return toRgb(HSL {
+        base.h,
+        std::clamp(saturation * base.s, 0.f, 1.f),
+        std::clamp(lightness + (base.l - 0.5f) * 0.5f, 0.f, 1.f),
+    });
+}
 } // namespace
 
 
@@ -96,14 +108,19 @@ RGB colorFor(const Variants& variants, size_t team)
         lightness += hsl.l / ORIGINAL_COUNT;
     }
 
-    // Paint it with the base color: its hue, a less saturated base gives less saturated shades,
-    // and a lighter or darker base shifts the shades a bit
-    const HSL base = toHsl(baseColor(team));
-    return toRgb(HSL {
-        base.h,
-        std::clamp(saturation * base.s, 0.f, 1.f),
-        std::clamp(lightness + (base.l - 0.5f) * 0.5f, 0.f, 1.f),
-    });
+    return paint(saturation, lightness, team);
+}
+
+RGB tint(RGB color, size_t team)
+{
+    if (team < ORIGINAL_COUNT)
+        return color;
+
+    const HSL hsl = toHsl(color);
+    if (hsl.s == 0.f)
+        return color;  // black, white and gray have no team color
+
+    return paint(hsl.s, hsl.l, team);
 }
 
 size_t variantIndex(size_t team, int trailingVariants)

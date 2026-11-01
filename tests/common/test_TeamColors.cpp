@@ -167,3 +167,22 @@ TEST_CASE("Generated team variants go after the trailing variants")
         CHECK(readPixel(sheet, stride * static_cast<int>(index), 0) == team_colors::colorFor(LIGHT_SHADE, team));
     }
 }
+
+TEST_CASE("Tinting paints a single color with the team's base color")
+{
+    const RGB red {237, 66, 80};
+    for (size_t team = 0; team < team_colors::ORIGINAL_COUNT; team++)
+        CHECK(team_colors::tint(red, team) == red);
+
+    for (size_t team = team_colors::ORIGINAL_COUNT; team < MAX_TEAMS; team++) {
+        // black, white and gray have no team color
+        CHECK(team_colors::tint(RGB {0, 0, 0}, team) == RGB {0, 0, 0});
+        CHECK(team_colors::tint(RGB {255, 255, 255}, team) == RGB {255, 255, 255});
+        CHECK(team_colors::tint(RGB {104, 136, 120}, team) != RGB {104, 136, 120});
+
+        const RGB base = team_colors::baseColor(team);
+        const RGB tinted = team_colors::tint(red, team);
+        if (base.r != base.g || base.g != base.b)
+            CHECK(hueDistance(hueOf(tinted), hueOf(base)) < 3.f);
+    }
+}

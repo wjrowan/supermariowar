@@ -28,6 +28,10 @@ RGB baseColor(size_t team);
 /// base color, keeping the lightness of the original shade (so dark shades stay dark).
 RGB colorFor(const Variants& variants, size_t team);
 
+/// Paints a single color with a generated team's base color, keeping its shade.
+/// For art that doesn't have a variant per team (eg. a background drawn in one team's colors).
+RGB tint(RGB color, size_t team);
+
 enum class Axis { X, Y };
 
 /// Extends a sprite sheet that has a variant for each original team, laid out along `axis`,
