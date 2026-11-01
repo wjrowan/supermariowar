@@ -116,9 +116,13 @@ art, final HUD / team select layouts, CTF flag bases for teams 5-8 (maps store 4
 
 What's placeholder or limited for now:
 
-- Colours 5-8 are generated at load time by hue-shifting colours 1-4 (purple, orange,
-  cyan, pink): `src/common/gfx/TeamColors.*`, called from `gfxPalette::load` and
-  `CResourceManager::extendTeamColoredSprites`. Sheets that already have 8 variants are left
+- Colours 5-8 are generated at load time (`src/common/gfx/TeamColors.*`, called from
+  `gfxPalette::load` and `CResourceManager::extendTeamColoredSprites`): the 4 original
+  variants of each sheet / palette entry are compared, pixels that differ are team coloured,
+  and get the new team's base colour (hue + saturation) at the original shade's lightness.
+  Pixels shared by all 4 (outlines, hammer handles, fuses) stay as they are. The base colours
+  (purple, white, cyan, pink) are one table in `TeamColors.cpp`. SMW's "yellow" team is
+  orange-ish, so avoid orange as a new colour. Sheets that already have 8 variants are left
   alone, so real art in the `data` submodule (needs its own fork) replaces them without code
   changes.
 - With more than 4 teams, CTF, Race, King of the Hill, Jail, Eggs, Owned and Star are hidden

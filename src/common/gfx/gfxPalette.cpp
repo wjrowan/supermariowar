@@ -39,14 +39,25 @@ bool gfxPalette::load(const fs::path& path)
     for (int x = 0; x < sprite.getWidth(); x++) {
         RGB key = getRgb(sprite.getSurface(), x, 0);
 
+        const auto colorAt = [&](size_t team, size_t playerState) {
+            return getRgb(sprite.getSurface(), x, static_cast<int>(1 + team * PlayerPalette::COUNT + playerState));
+        };
+
         ColorSheet sheet {};
         for (size_t team = 0; team < MAX_TEAMS; team++) {
-            const size_t imageTeam = team < teamsInImage ? team : team_colors::sourceTeam(team) % teamsInImage;
             for (size_t playerState = 0; playerState < PlayerPalette::COUNT; playerState++) {
-                const size_t imageY = 1 + imageTeam * PlayerPalette::COUNT + playerState;
-                const RGB color = getRgb(sprite.getSurface(), x, static_cast<int>(imageY));
-                const size_t relativeY = team * PlayerPalette::COUNT + playerState;
-                sheet.replacements[relativeY] = team < teamsInImage ? color : team_colors::colorFor(color, team);
+                RGB color;
+                if (team < teamsInImage) {
+                    color = colorAt(team, playerState);
+                } else if (teamsInImage >= team_colors::ORIGINAL_COUNT) {
+                    team_colors::Variants variants;
+                    for (size_t original = 0; original < team_colors::ORIGINAL_COUNT; original++)
+                        variants[original] = colorAt(original, playerState);
+                    color = team_colors::colorFor(variants, team);
+                } else {
+                    color = colorAt(team % teamsInImage, playerState);
+                }
+                sheet.replacements[team * PlayerPalette::COUNT + playerState] = color;
             }
         }
 
