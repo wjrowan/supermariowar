@@ -112,7 +112,7 @@ class CPlayerInput
 		//Updates what commands the user is sending
 		void Update(SDL_Event event, short iGameState);
 
-		//Gives a game controller to the first player still on the keyboard,
+		//Gives a game controller to the first player on the keyboard who didn't choose it,
 		//unless a player already uses it (eg. a controller that reconnected)
 		void AssignJoystick(short device);
 
@@ -122,11 +122,14 @@ class CPlayerInput
 		//Use these structures to see what input has been pressed
 		COutputControl outputControls[MAX_PLAYERS];
 
+		//Players who picked the keyboard in the controls menu, so they don't get a controller automatically
+		bool fKeyboardChosen[MAX_PLAYERS];
+
 		SDL_Keycode iPressedKey;
 };
 
-/// Opens a connected joystick, reusing the device index of a disconnected one.
-/// Returns its device index, or -1 if it's already open or couldn't be opened.
+/// Opens a connected game controller, reusing the device index of a disconnected one.
+/// Returns its device index, or -1 if it's already open, isn't a game controller or couldn't be opened.
 short OpenJoystick(SDL_JoystickID id);
 /// Closes a disconnected joystick. Its device index is kept for when it comes back.
 void CloseJoystick(SDL_JoystickID id);

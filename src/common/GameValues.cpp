@@ -13,6 +13,8 @@
 #include <toml.hpp>
 #include <stdio.h>
 #include <stdexcept>
+#include <algorithm>
+#include <cstring>
 
 // TODO: Refactor externs
 
@@ -136,6 +138,10 @@ std::string GetOptionsTomlPath() {
 std::string GetOptionsBinPath() {
     return GetHomeDirectory() + "options.bin";
 }
+
+// Starts the controls file, so files from older builds (which saved controller numbers) are ignored
+constexpr int32_t CONTROLS_FILE_MAGIC = 0x38574D53;  // "SMW8"
+constexpr int16_t CONTROLS_FILE_VERSION = 1;
 
 std::string GetControlsBinPath() {
     // Holds MAX_PLAYERS entries, so it gets its own name instead of the 4-player "controls.sdl2.bin"
@@ -456,10 +462,49 @@ void CGameConfig::ReadBinaryConfig() {
 void CGameConfig::ReadInputConfig() {
     ReadSavedInputConfig();
 
-    // Controllers that no player uses yet go to the players still on the keyboard, in the order they were found.
-    // This way a fresh install, or more controllers than last time, need no setup.
+    // Controllers aren't remembered (their order can change between launches): every player starts
+    // on the keyboard, then the controllers go to the players who didn't choose the keyboard, in the
+    // order they were found. The players left over keep the keyboard, with a free key layout if they have none.
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
+        inputConfiguration[iPlayer][0].iDevice = DEVICE_KEYBOARD;
+        playerInput.inputControls[iPlayer] = &inputConfiguration[iPlayer][0];
+    }
+
     for (short device = 0; device < joystickcount; device++)
         playerInput.AssignJoystick(device);
+
+    AssignKeyboardLayouts();
+}
+
+void CGameConfig::AssignKeyboardLayouts()
+{
+    // The default layouts are the players with keys in the default keyboard controls
+    const auto hasGameKeys = [](const SDL_Keycode* keys) {
+        return std::any_of(keys, keys + NUM_KEYS, [](SDL_Keycode key) { return key != KEY_NONE; });
+    };
+    const auto usesLayout = [](const CInputPlayerControl* control, short layout) {
+        return std::equal(control->inputGameControls[0].keys, control->inputGameControls[0].keys + NUM_KEYS, controlkeys[0][0][layout]);
+    };
+
+    for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
+        CInputPlayerControl* control = playerInput.inputControls[iPlayer];
+        if (!control || control->iDevice != DEVICE_KEYBOARD || hasGameKeys(control->inputGameControls[0].keys))
+            continue;
+
+        for (short layout = 0; layout < MAX_PLAYERS && hasGameKeys(controlkeys[0][0][layout]); layout++) {
+            const bool fUsed = std::any_of(playerInput.inputControls, playerInput.inputControls + MAX_PLAYERS, [&](const CInputPlayerControl* other) {
+                return other && other != control && other->iDevice == DEVICE_KEYBOARD && usesLayout(other, layout);
+            });
+            if (fUsed)
+                continue;
+
+            for (short iInputState = 0; iInputState < 2; iInputState++)
+                std::copy_n(controlkeys[0][iInputState][layout], NUM_KEYS, control->inputGameControls[iInputState].keys);
+
+            printf("[input] Player %d uses keyboard layout %d\n", iPlayer + 1, layout + 1);
+            break;
+        }
+    }
 }
 
 void CGameConfig::ReadSavedInputConfig() {
@@ -474,20 +519,19 @@ void CGameConfig::ReadSavedInputConfig() {
         if (!controls.is_open())
             throw std::runtime_error("Could not open " + controls_path);
 
-        //TODO: Need to test what happens when you unplug some controllers from the xbox
-        //and then start up (device index will probably point to a gamepad that isn't in the list)
-        //and this will cause a crash
-        controls.read_raw(inputConfiguration, sizeof(inputConfiguration));
+        if (controls.read_i32() != CONTROLS_FILE_MAGIC || controls.read_i16() != CONTROLS_FILE_VERSION)
+            throw std::runtime_error("unknown format");
 
-        //setup player input controls for game
-        for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
-            short iDevice = controls.read_i16();
+        // Read everything before applying any of it
+        CInputPlayerControl savedConfiguration[MAX_PLAYERS][2];
+        controls.read_raw(savedConfiguration, sizeof(savedConfiguration));
 
-            if (iDevice >= joystickcount)
-                iDevice = DEVICE_KEYBOARD;
+        bool savedKeyboardChosen[MAX_PLAYERS];
+        for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++)
+            savedKeyboardChosen[iPlayer] = controls.read_bool();
 
-            playerInput.inputControls[iPlayer] = &inputConfiguration[iPlayer][iDevice == DEVICE_KEYBOARD ? 0 : 1];
-        }
+        std::memcpy(inputConfiguration, savedConfiguration, sizeof(inputConfiguration));
+        std::copy_n(savedKeyboardChosen, MAX_PLAYERS, playerInput.fKeyboardChosen);
     }
     catch (std::exception const& error)
     {
@@ -504,10 +548,12 @@ void CGameConfig::WriteInputConfig() const {
         if (!controls.is_open())
             throw std::runtime_error("Could not open " + controls_path);
 
+        controls.write_i32(CONTROLS_FILE_MAGIC);
+        controls.write_i16(CONTROLS_FILE_VERSION);
         controls.write_raw(inputConfiguration, sizeof(inputConfiguration));
 
         for (int iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++)
-            controls.write_i16(playerInput.inputControls[iPlayer]->iDevice);
+            controls.write_bool(playerInput.fKeyboardChosen[iPlayer]);
     }
     catch (std::exception const& error)
     {

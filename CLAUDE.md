@@ -112,7 +112,7 @@ apart from a stock SMW install's `supermariowar/`.
 `MAX_PLAYERS` (8), `MAX_TEAMS` (8) and `MAX_TEAM_SIZE` (7) are in `src/common/GlobalConstants.h`.
 Phase 1 (functionality test) is in. Open Phase 2 decisions: the 4 real new colours and their
 art, final HUD / team select layouts, CTF flag bases for teams 5-8 (maps store 4), the other
-4-team modes and tournament/tour/world screens, and remembering pads by GUID.
+4-team modes and tournament/tour/world screens, and remembering which pad belongs to whom.
 
 What's placeholder or limited for now:
 
@@ -130,9 +130,12 @@ What's placeholder or limited for now:
 - Team select, in-game scoreboard and the end-of-game ranking use placeholder layouts
   (8 narrow columns, two score rows, squeezed rows). HUD is still fixed at 640x480.
 - The announcer has no clips for colours 5-8, so it stays silent for them.
-- Controllers: pads that SDL knows as gamepads go to the players still on keyboard, at
-  startup and when connected (`CPlayerInput::AssignJoystick`). Saved controls store device
-  indexes, which can reorder between boots. The controls menu lists the pads found at startup.
+- Controllers: only devices SDL knows as gamepads are used (the Keychron keyboard receiver
+  shows up as a joystick). Pads aren't remembered: every launch they go to players 1, 2, 3...
+  in the order found, skipping players who chose "Keyboard" in the controls menu (that choice
+  is saved in `controls.8p.bin`). Players left over get the keyboard with a free default
+  layout (`CGameConfig::AssignKeyboardLayouts`). Pads connected later go to the first
+  fallback keyboard player. The controls menu lists the pads found at startup.
 
 When hunting leftover 4s: not every 4 is a player count (tiles, directions, switches, swirl
 arms, egg/yoshi colours, sprite frames, the autotest script's "4 == all"). Read the context.

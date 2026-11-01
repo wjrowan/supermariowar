@@ -31,6 +31,10 @@ short OpenJoystick(SDL_JoystickID id)
     if (deviceIndexFromJoystickID(id) != KEYBOARD_DEVICE_ID)
         return -1;  // SDL also reports the joysticks found at startup as added
 
+    // Some keyboard and mouse receivers show up as joysticks too, only use real game controllers
+    if (!SDL_IsGamepad(id))
+        return -1;
+
     SDL_Joystick* joystick = SDL_OpenJoystick(id);
     if (!joystick) {
         printf("[input] Couldn't open joystick %u: %s\n", static_cast<unsigned>(id), SDL_GetError());
@@ -68,6 +72,7 @@ SDL_Joystick* GetJoystick(short device)
 CPlayerInput::CPlayerInput()
 {
     for (int iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
+        fKeyboardChosen[iPlayer] = false;
         for (int iKey = 0; iKey < NUM_KEYS; iKey++) {
 			outputControls[iPlayer].keys[iKey].fPressed = false;
 			outputControls[iPlayer].keys[iKey].fDown = false;
@@ -395,10 +400,7 @@ void CPlayerInput::Update(SDL_Event event, short iGameState)
 
 void CPlayerInput::AssignJoystick(short device)
 {
-    // Only hand out game controllers, as some keyboard and mouse receivers show up as joysticks too.
-    // Other joysticks can still be picked in the controls menu.
-    SDL_Joystick* joystick = GetJoystick(device);
-    if (!joystick || !SDL_IsGamepad(SDL_GetJoystickID(joystick)))
+    if (!GetJoystick(device))
         return;
 
     for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
@@ -407,7 +409,7 @@ void CPlayerInput::AssignJoystick(short device)
     }
 
     for (short iPlayer = 0; iPlayer < MAX_PLAYERS; iPlayer++) {
-        if (inputControls[iPlayer] && inputControls[iPlayer]->iDevice == DEVICE_KEYBOARD) {
+        if (!fKeyboardChosen[iPlayer] && inputControls[iPlayer] && inputControls[iPlayer]->iDevice == DEVICE_KEYBOARD) {
             CInputPlayerControl& joystickControl = game_values.inputConfiguration[iPlayer][1];
             joystickControl.iDevice = device;
             inputControls[iPlayer] = &joystickControl;

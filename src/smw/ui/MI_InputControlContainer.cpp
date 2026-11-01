@@ -530,6 +530,11 @@ void MI_InputControlContainer::UpdateDeviceKeys(short lDevice)
     game_values.playerInput.inputControls[iPlayerID] = &game_values.inputConfiguration[iPlayerID][lDevice == DEVICE_KEYBOARD ? 0 : 1];
     game_values.playerInput.inputControls[iPlayerID]->iDevice = lDevice;
 
+    // Choosing the keyboard is remembered, and keeps controllers from being handed to this player
+    game_values.playerInput.fKeyboardChosen[iPlayerID] = lDevice == DEVICE_KEYBOARD;
+    if (lDevice == DEVICE_KEYBOARD)
+        game_values.AssignKeyboardLayouts();
+
     for (int iKey = 0; iKey < NUM_KEYS; iKey++) {
         miGameInputControlFields[iKey]->SetDevice(lDevice);
         miGameInputControlFields[iKey]->SetKey(&game_values.playerInput.inputControls[iPlayerID]->inputGameControls[0].keys[iKey]);

@@ -154,6 +154,9 @@ public:
     void ReadConfig();
     void WriteConfig() const;
 
+    /// Players on the keyboard without any keys get a default layout (arrows, WASD...) no other keyboard player uses
+    void AssignKeyboardLayouts();
+
 private:
     void ReadInputConfig();
     void ReadSavedInputConfig();
